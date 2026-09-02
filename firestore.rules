@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper functions ---
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOrgOwner(orgId) {
+      return isAuth()
+        && get(/databases/$(database)/documents/organizations/$(orgId)).data.userId == request.auth.uid;
+    }
+
+    function isAnimalOrgOwner() {
+      return isAuth()
+        && isOrgOwner(resource.data.organizationId);
+    }
+
+    function isCreateAnimalOrgOwner() {
+      return isAuth()
+        && isOrgOwner(request.resource.data.organizationId);
+    }
+
+    // --- Organizations ---
+
+    match /organizations/{orgId} {
+      allow read: if true;
+      allow create: if isAuth()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['userId', 'name', 'city', 'state']);
+      allow update: if isOrgOwner(orgId)
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if isOrgOwner(orgId);
+    }
+
+    // --- Animals ---
+
+    match /animals/{animalId} {
+      allow read: if resource.data.available == true
+        || (isAuth() && isOrgOwner(resource.data.organizationId));
+      allow create: if isCreateAnimalOrgOwner()
+        && request.resource.data.keys().hasAll(['organizationId', 'name', 'species', 'available']);
+      allow update: if isAnimalOrgOwner();
+      allow delete: if isAnimalOrgOwner();
+    }
+  }
+}
