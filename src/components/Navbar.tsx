@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { logout } from '@/services/auth.service'
 
 export default function Navbar() {
   const { user } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   async function handleLogout() {
     await logout()
+    setMenuOpen(false)
   }
 
   return (
@@ -45,9 +48,33 @@ export default function Navbar() {
                 </Link>
               </>
             )}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="md:hidden p-1 text-gray-600 hover:text-emerald-600"
+              aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                {menuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
           </div>
         </div>
       </div>
+      {menuOpen && (
+        <div className="md:hidden border-t bg-white">
+          <div className="px-4 py-3 space-y-2">
+            <Link to="/animais" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">Animais</Link>
+            <Link to="/ongs" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">ONGs</Link>
+            <Link to="/como-adotar" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">Como Adotar</Link>
+            <Link to="/adocao-responsavel" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">Adoção Responsável</Link>
+            <Link to="/sobre" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">Sobre</Link>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }

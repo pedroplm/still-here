@@ -1,4 +1,10 @@
+import { usePageMeta } from '@/hooks/usePageMeta'
+
 export default function Sobre() {
+  usePageMeta(
+    'Sobre · Still Here',
+    'Conheça a Still Here, plataforma de adoção responsável de animais.',
+  )
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Sobre o Still Here</h1>

@@ -5,17 +5,17 @@ import { getOrganizationByUserId } from '@/services/database.service'
 export function useOrgId() {
   const { user } = useAuth()
   const [orgId, setOrgId] = useState<string | undefined>(undefined)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false)
-      return
+    if (!user) return
+    let cancelled = false
+    getOrganizationByUserId(user.uid).then((org) => {
+      if (!cancelled) setOrgId(org?.organizationId)
+    })
+    return () => {
+      cancelled = true
     }
-    getOrganizationByUserId(user.uid)
-      .then((org) => setOrgId(org?.organizationId))
-      .finally(() => setLoading(false))
   }, [user])
 
-  return { orgId, loading }
+  return { orgId: user ? orgId : undefined, loading: Boolean(user) && orgId === undefined }
 }

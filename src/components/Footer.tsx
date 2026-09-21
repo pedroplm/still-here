@@ -18,6 +18,7 @@ export default function Footer() {
               <Link to="/ongs" className="text-gray-500 hover:text-emerald-600">ONGs</Link>
               <Link to="/como-adotar" className="text-gray-500 hover:text-emerald-600">Como Adotar</Link>
               <Link to="/sobre" className="text-gray-500 hover:text-emerald-600">Sobre</Link>
+              <Link to="/termos" className="text-gray-500 hover:text-emerald-600">Termos de Uso</Link>
             </div>
           </div>
           <div>

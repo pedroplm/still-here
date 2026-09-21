@@ -12,6 +12,7 @@ const OngDetail = lazy(() => import('./pages/OngDetail'))
 const AdocaoResponsavel = lazy(() => import('./pages/AdocaoResponsavel'))
 const ComoAdotar = lazy(() => import('./pages/ComoAdotar'))
 const Sobre = lazy(() => import('./pages/Sobre'))
+const Termos = lazy(() => import('./pages/Termos'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
@@ -35,12 +36,13 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/animais" element={<Animals />} />
-          <Route path="/animais/:id" element={<AnimalDetail />} />
+          <Route path="/adocao/:slug" element={<AnimalDetail />} />
           <Route path="/ongs" element={<Ongs />} />
           <Route path="/ongs/:id" element={<OngDetail />} />
           <Route path="/adocao-responsavel" element={<AdocaoResponsavel />} />
           <Route path="/como-adotar" element={<ComoAdotar />} />
           <Route path="/sobre" element={<Sobre />} />
+          <Route path="/termos" element={<Termos />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registrar" element={<Register />} />
           <Route

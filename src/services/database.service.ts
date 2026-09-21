@@ -11,39 +11,21 @@ import {
   where,
   orderBy,
   Timestamp,
+  increment,
 } from 'firebase/firestore'
 import { db } from './firebase.config'
+import type { Organization, Animal } from '@/types'
 
-export interface Organization {
-  id?: string
-  userId: string
-  organizationId: string
-  name: string
-  description: string
-  city: string
-  state: string
-  phone: string
-  email: string
-  website?: string
-  instagram?: string
-  logoUrl?: string
-  createdAt?: Timestamp
-  updatedAt?: Timestamp
+const ACCESS_STATS_DOC = doc(db, 'stats', 'accesses')
+
+// --- Acessos da home ---
+export async function incrementAccessCount() {
+  await setDoc(ACCESS_STATS_DOC, { count: increment(1) }, { merge: true })
 }
 
-export interface Animal {
-  id?: string
-  organizationId: string
-  name: string
-  species: 'cachorro' | 'gato' | 'outro'
-  breed?: string
-  age: string
-  size: 'pequeno' | 'medio' | 'grande'
-  description: string
-  imageUrl: string
-  available: boolean
-  createdAt?: Timestamp
-  updatedAt?: Timestamp
+export async function getAccessCount(): Promise<number> {
+  const snap = await getDoc(ACCESS_STATS_DOC)
+  return snap.exists() ? (snap.data().count ?? 0) : 0
 }
 
 // --- Organizations ---

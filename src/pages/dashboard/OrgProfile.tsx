@@ -1,11 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import {
-  getOrganizationByUserId,
-  updateOrganization,
-  type Organization,
-} from '@/services/database.service'
-import { uploadImage } from '@/services/storage.service'
+import { getOrganizationByUserId, updateOrganization } from '@/services/database.service'
+import type { Organization } from '@/types'
+import { uploadImage, validateImageFile } from '@/services/storage.service'
 
 export default function OrgProfile() {
   const { user } = useAuth()
@@ -15,6 +12,9 @@ export default function OrgProfile() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [pixQrFile, setPixQrFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   useEffect(() => {
     if (!user) return
@@ -29,25 +29,53 @@ export default function OrgProfile() {
     setOrg({ ...org, [field]: value })
   }
 
+  function handleFileChange(
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFile: (f: File | null) => void
+  ) {
+    const file = e.target.files?.[0] ?? null
+    const validationError = validateImageFile(file)
+    if (validationError) {
+      setError(validationError)
+      setFile(null)
+      e.target.value = ''
+      return
+    }
+    setError('')
+    setFile(file)
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!org?.id) return
     setSaving(true)
+    setUploading(true)
     setError('')
     setSuccess('')
+    setUploadProgress(0)
 
     try {
       let logoUrl = org.logoUrl
       if (logoFile) {
-        logoUrl = await uploadImage(logoFile)
+        const validated = validateImageFile(logoFile)
+        if (validated) throw new Error(validated)
+        logoUrl = await uploadImage(logoFile, setUploadProgress)
       }
-      await updateOrganization(org.id, { ...org, logoUrl })
+      let pixQrCodeUrl = org.pixQrCodeUrl
+      if (pixQrFile) {
+        const validated = validateImageFile(pixQrFile)
+        if (validated) throw new Error(validated)
+        pixQrCodeUrl = await uploadImage(pixQrFile, setUploadProgress)
+      }
+      await updateOrganization(org.id, { ...org, logoUrl, pixQrCodeUrl })
       setSuccess('Perfil salvo com sucesso!')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao salvar'
       setError(msg)
     } finally {
       setSaving(false)
+      setUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -117,7 +145,7 @@ export default function OrgProfile() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Telefone (WhatsApp)</label>
           <input
             type="tel"
             required
@@ -125,6 +153,7 @@ export default function OrgProfile() {
             onChange={(e) => updateField('phone', e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
+          <p className="text-xs text-gray-400 mt-1">Número com WhatsApp — usado para contato sobre adoções.</p>
         </div>
 
         <div>
@@ -165,13 +194,54 @@ export default function OrgProfile() {
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => handleFileChange(e, setLogoFile)}
             className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
           />
+          <p className="text-xs text-gray-400 mt-1">Máximo de 10MB. A imagem será otimizada automaticamente.</p>
           {org.logoUrl && !logoFile && (
             <img src={org.logoUrl} alt="Logo" className="mt-2 h-16 rounded-lg object-cover" />
           )}
         </div>
+
+        <hr className="my-4" />
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Doação via PIX</h3>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Chave PIX</label>
+          <input
+            type="text"
+            value={org.pixKey ?? ''}
+            onChange={(e) => updateField('pixKey', e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            placeholder="CPF, e-mail, telefone ou chave aleatória"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">QR Code PIX</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleFileChange(e, setPixQrFile)}
+            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+          />
+          <p className="text-xs text-gray-400 mt-1">Máximo de 10MB. A imagem será otimizada automaticamente.</p>
+          {org.pixQrCodeUrl && !pixQrFile && (
+            <img src={org.pixQrCodeUrl} alt="QR Code PIX" className="mt-2 h-32 rounded-lg object-contain bg-gray-50 p-2" />
+          )}
+        </div>
+
+        {uploading && uploadProgress > 0 && uploadProgress < 100 && (
+          <div>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 transition-all"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Enviando imagem... {uploadProgress}%</p>
+          </div>
+        )}
 
         <button
           type="submit"

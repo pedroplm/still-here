@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { getAnimals, type Animal } from '@/services/database.service'
+import { getAnimals } from '@/services/database.service'
+import type { Animal } from '@/types'
 import { useOrgId } from '@/hooks/useOrgId'
 
 export default function Dashboard() {

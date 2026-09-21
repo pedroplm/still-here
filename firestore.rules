@@ -45,5 +45,18 @@ service cloud.firestore {
       allow update: if isAnimalOrgOwner();
       allow delete: if isAnimalOrgOwner();
     }
+
+    // --- Contador de acessos (home) ---
+
+    match /stats/accesses {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['count'])
+        && request.resource.data.count is int
+        && request.resource.data.count == 1;
+      allow update: if resource.data.keys().hasOnly(['count'])
+        && request.resource.data.keys().hasOnly(['count'])
+        && request.resource.data.count is int
+        && request.resource.data.count == resource.data.count + 1;
+    }
   }
 }

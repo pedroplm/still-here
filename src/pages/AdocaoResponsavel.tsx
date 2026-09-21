@@ -1,4 +1,10 @@
+import { usePageMeta } from '@/hooks/usePageMeta'
+
 export default function AdocaoResponsavel() {
+  usePageMeta(
+    'Adoção Responsável · Still Here',
+    'Saiba o que é adoção responsável e como ela ajuda os animais.',
+  )
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Adoção Responsável</h1>
