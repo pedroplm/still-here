@@ -5,6 +5,12 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import './index.css'
 import App from './App'
 
+const redirect = sessionStorage.getItem('redirect')
+if (redirect) {
+  sessionStorage.removeItem('redirect')
+  window.history.replaceState(null, '', redirect)
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

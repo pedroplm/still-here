@@ -6,3 +6,5 @@ export type { SpeciesCategory, SizeCategory, SexCategory, StatusCategory } from 
 
 export { demoAnimals } from './demo-animals'
 export type { DemoAnimal } from './demo-animals'
+
+export { demoOrganizations, DEMO_CAMPINAS_ORG_ID } from './demo-orgs'

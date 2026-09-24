@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import logoUrl from '@/assets/logo.svg'
 
 export default function Footer() {
   return (
@@ -6,7 +7,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="font-bold text-gray-800 mb-2">Still Here</h3>
+            <img src={logoUrl} alt="Still Here" className="h-12 w-auto mb-2" />
             <p className="text-sm text-gray-500">
               Conectando ONGs a famílias que querem adotar de forma responsável.
             </p>

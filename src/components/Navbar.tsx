@@ -1,11 +1,23 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { logout } from '@/services/auth.service'
+import logoUrl from '@/assets/logo.svg'
+
+const NAV_LINKS = [
+  { to: '/animais', label: 'Animais' },
+  { to: '/ongs', label: 'ONGs' },
+  { to: '/como-adotar', label: 'Como Adotar' },
+  { to: '/adocao-responsavel', label: 'Adoção Responsável' },
+  { to: '/sobre', label: 'Sobre' },
+]
 
 export default function Navbar() {
   const { user } = useAuth()
+  const { pathname } = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const isActive = (to: string) => pathname === to || pathname.startsWith(to + '/')
 
   async function handleLogout() {
     await logout()
@@ -16,20 +28,33 @@ export default function Navbar() {
     <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          <Link to="/" className="text-xl font-bold text-emerald-600">
-            Still Here
+          <Link to="/" className="flex items-center">
+            <img src={logoUrl} alt="Still Here" className="h-8 w-auto" />
           </Link>
-          <div className="hidden md:flex gap-6 text-sm">
-            <Link to="/animais" className="text-gray-600 hover:text-emerald-600">Animais</Link>
-            <Link to="/ongs" className="text-gray-600 hover:text-emerald-600">ONGs</Link>
-            <Link to="/como-adotar" className="text-gray-600 hover:text-emerald-600">Como Adotar</Link>
-            <Link to="/adocao-responsavel" className="text-gray-600 hover:text-emerald-600">Adoção Responsável</Link>
-            <Link to="/sobre" className="text-gray-600 hover:text-emerald-600">Sobre</Link>
+          <div className="hidden md:flex items-center gap-1 text-sm">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={
+                  isActive(link.to)
+                    ? 'bg-emerald-100 text-emerald-700 rounded-lg px-3 py-2 transition-colors'
+                    : 'text-gray-600 hover:text-emerald-600 rounded-lg px-3 py-2 transition-colors'
+                }
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
           <div className="flex gap-3 items-center">
             {user ? (
               <>
-                <Link to="/dashboard" className="text-sm text-gray-600 hover:text-emerald-600">Dashboard</Link>
+                <Link
+                  to="/dashboard"
+                  className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 hover:text-white"
+                >
+                  Dashboard
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="text-sm text-gray-500 hover:text-red-600"
@@ -67,11 +92,20 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden border-t bg-white">
           <div className="px-4 py-3 space-y-2">
-            <Link to="/animais" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">Animais</Link>
-            <Link to="/ongs" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">ONGs</Link>
-            <Link to="/como-adotar" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">Como Adotar</Link>
-            <Link to="/adocao-responsavel" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">Adoção Responsável</Link>
-            <Link to="/sobre" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-emerald-600">Sobre</Link>
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setMenuOpen(false)}
+                className={
+                  isActive(link.to)
+                    ? 'block bg-emerald-100 text-emerald-700 rounded-lg px-3 py-2'
+                    : 'block text-gray-600 hover:text-emerald-600 rounded-lg px-3 py-2'
+                }
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       )}

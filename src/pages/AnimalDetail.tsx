@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { FaWhatsapp } from 'react-icons/fa6'
+import { FaWhatsapp, FaGlobe } from 'react-icons/fa6'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { getAnimal, getOrganization } from '@/services/database.service'
 import type { Animal, Organization } from '@/types'
@@ -66,14 +66,16 @@ export default function AnimalDetail() {
     )
   }
 
-  const isWhatsApp = Boolean(org?.phone)
-  const contactHref = isWhatsApp
-    ? buildWhatsAppUrl(org!.phone as string, animal.name, org!.name)
-    : org?.email
-      ? `mailto:${org.email}`
-      : org?.instagram
-        ? `https://instagram.com/${org.instagram.replace('@', '')}`
-        : null
+  const isWhatsApp = Boolean(org?.phone) && !org?.website
+  const contactHref = org?.website
+    ? org.website
+    : org?.phone
+      ? buildWhatsAppUrl(org!.phone as string, animal.name, org!.name)
+      : org?.email
+        ? `mailto:${org.email}`
+        : org?.instagram
+          ? `https://instagram.com/${org.instagram.replace('@', '')}`
+          : null
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -148,8 +150,16 @@ export default function AnimalDetail() {
               rel="noopener noreferrer"
               className="mt-auto bg-emerald-600 text-white py-3 rounded-lg text-center font-medium hover:bg-emerald-700 flex items-center justify-center gap-2"
             >
-              {isWhatsApp && <FaWhatsapp className="text-xl" />}
-              {isWhatsApp ? 'Tenho interesse no WhatsApp' : 'Tenho interesse em adotar'}
+              {org?.website ? (
+                <FaGlobe className="text-xl" />
+              ) : (
+                isWhatsApp && <FaWhatsapp className="text-xl" />
+              )}
+              {org?.website
+                ? 'Tenho interesse em adotar'
+                : isWhatsApp
+                  ? 'Tenho interesse no WhatsApp'
+                  : 'Tenho interesse em adotar'}
             </a>
           ) : (
             <div className="mt-auto text-sm text-gray-500 text-center">

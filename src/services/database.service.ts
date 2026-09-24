@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase.config'
 import type { Organization, Animal } from '@/types'
+import { demoOrganizations, DEMO_CAMPINAS_ORG_ID } from '@/data'
 
 const ACCESS_STATS_DOC = doc(db, 'stats', 'accesses')
 
@@ -31,10 +32,14 @@ export async function getAccessCount(): Promise<number> {
 // --- Organizations ---
 export async function getOrganizations() {
   const snap = await getDocs(collection(db, 'organizations'))
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Organization[]
+  const firestoreOrgs = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Organization[]
+  const hasCampinas = firestoreOrgs.some((o) => o.organizationId === DEMO_CAMPINAS_ORG_ID)
+  return hasCampinas ? firestoreOrgs : [...firestoreOrgs, ...demoOrganizations]
 }
 
 export async function getOrganization(id: string) {
+  const demo = demoOrganizations.find((o) => o.organizationId === id || o.id === id)
+  if (demo) return demo
   const snap = await getDoc(doc(db, 'organizations', id))
   if (!snap.exists()) return null
   return { id: snap.id, ...snap.data() } as Organization
@@ -73,6 +78,17 @@ export async function getAnimals(organizationId?: string) {
   }
   const snap = await getDocs(q)
   return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Animal[]
+}
+
+export async function getAvailableAnimals(organizationId?: string) {
+  const conditions = [where('available', '==', true)]
+  if (organizationId) {
+    conditions.push(where('organizationId', '==', organizationId))
+  }
+  const snap = await getDocs(query(collection(db, 'animals'), ...conditions))
+  const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Animal[]
+  list.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
+  return list
 }
 
 export async function getAnimal(id: string) {

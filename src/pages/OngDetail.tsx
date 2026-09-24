@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getOrganization, getAnimals } from '@/services/database.service'
+import { getOrganization, getAvailableAnimals } from '@/services/database.service'
 import type { Organization, Animal } from '@/types'
 import { FaWhatsapp, FaInstagram, FaGlobe, FaPix } from 'react-icons/fa6'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { buildAnimalSlug } from '@/utils/slug'
+import EmptyAnimals from '@/components/EmptyAnimals'
 
 export default function OngDetail() {
   const { id } = useParams<{ id: string }>()
@@ -22,8 +23,11 @@ export default function OngDetail() {
           return
         }
         setOrg(data)
-        const all = await getAnimals(data.organizationId)
-        setAnimals(all.filter((a) => a.available))
+        try {
+          setAnimals(await getAvailableAnimals(data.organizationId))
+        } catch {
+          setAnimals([])
+        }
       })
       .catch(() => setError('Erro ao carregar a ONG. Tente novamente.'))
       .finally(() => setLoading(false))
@@ -170,6 +174,13 @@ export default function OngDetail() {
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {animals.length === 0 && (
+        <div className="mt-10">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Animais disponíveis</h2>
+          <EmptyAnimals />
         </div>
       )}
     </div>

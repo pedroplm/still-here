@@ -4,6 +4,7 @@ import { getAnimals, getOrganization } from '@/services/database.service'
 import type { Animal } from '@/types'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { buildAnimalSlug } from '@/utils/slug'
+import EmptyAnimals from '@/components/EmptyAnimals'
 
 interface AnimalCard extends Animal {
   id: string
@@ -105,11 +106,13 @@ export default function Animals() {
       )}
 
       {filtered.length === 0 ? (
-        <p className="text-gray-500">
-          {animals.length === 0
-            ? 'Nenhum animal disponível para adoção no momento.'
-            : 'Nenhum animal encontrado com esses filtros.'}
-        </p>
+        <EmptyAnimals
+          subtitle={
+            animals.length === 0
+              ? undefined
+              : 'Tente ajustar os filtros para ver outros amigos.'
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.filter((a): a is AnimalCard & { id: string } => !!a.id).map((animal) => (

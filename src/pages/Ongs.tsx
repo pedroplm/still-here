@@ -26,6 +26,21 @@ export default function Ongs() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">ONGs parceiras</h1>
 
+      <div className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-6 md:p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl md:text-2xl font-bold">Sua ONG também pode estar aqui</h2>
+          <p className="text-emerald-50 mt-1">
+            Cadastre sua ONG aqui e ajude ainda mais nossos amigos encontrarem uma nova família.
+          </p>
+        </div>
+        <Link
+          to="/registrar"
+          className="shrink-0 bg-white text-emerald-600 font-semibold px-5 py-3 rounded-lg hover:bg-emerald-50 transition-colors"
+        >
+          Cadastrar minha ONG
+        </Link>
+      </div>
+
       {ongs.length === 0 ? (
         <p className="text-gray-500">Nenhuma ONG cadastrada ainda.</p>
       ) : (
