@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /dashboard
+Disallow: /login
+Disallow: /registrar
+
+Sitemap: https://stillhere.com.br/sitemap.xml

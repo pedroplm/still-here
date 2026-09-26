@@ -1,7 +1,13 @@
 import { useEffect } from 'react'
 
 const SITE_NAME = 'Still Here'
-const DEFAULT_IMAGE = '/og-default.svg'
+const SITE_URL = 'https://stillhere.com.br'
+const DEFAULT_IMAGE = `${SITE_URL}/og-default.png`
+
+function absoluteUrl(path: string) {
+  if (/^https?:\/\//.test(path)) return path
+  return `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
 
 function setMeta(attr: 'name' | 'property', key: string, content: string) {
   let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`)
@@ -26,8 +32,8 @@ function setCanonical(url: string) {
 export function usePageMeta(title: string, description?: string, image?: string) {
   useEffect(() => {
     document.title = title
-    const url = window.location.href
-    const img = image || DEFAULT_IMAGE
+    const url = `${SITE_URL}${window.location.pathname}`
+    const img = image ? absoluteUrl(image) : DEFAULT_IMAGE
 
     setMeta('property', 'og:title', title)
     setMeta('property', 'og:url', url)
@@ -38,6 +44,7 @@ export function usePageMeta(title: string, description?: string, image?: string)
 
     setMeta('name', 'twitter:card', 'summary_large_image')
     setMeta('name', 'twitter:title', title)
+    setMeta('name', 'twitter:image', img)
 
     setCanonical(url)
 
