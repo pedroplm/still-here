@@ -228,6 +228,9 @@
 
   "orgNotice.noOrgTitle": "Nenhuma ONG vinculada",
   "orgNotice.noOrgBody": "Esta conta ainda não tem uma ONG cadastrada.",
+
+  "curator.title": "Você está no painel de curadoria",
+  "curator.body": "Sua conta é de curador, não de ONG, então não tem perfil de instituição aqui. Use o painel para aprovar ou rejeitar as organizações que pedem para entrar na plataforma.",
   "orgNotice.rejectedTitle": "Cadastro não aprovado",
   "orgNotice.rejectedBody": "A ONG {{name}} não foi aprovada pela curadoria.",
   "orgNotice.reasonLabel": "Motivo",

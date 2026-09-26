@@ -228,6 +228,9 @@
 
   "orgNotice.noOrgTitle": "No NGO linked",
   "orgNotice.noOrgBody": "This account does not have a registered NGO yet.",
+
+  "curator.title": "You are in the curation panel",
+  "curator.body": "Your account is a curator account, not an NGO, so there is no organisation profile here. Use the panel to approve or reject the organisations asking to join the platform.",
   "orgNotice.rejectedTitle": "Registration not approved",
   "orgNotice.rejectedBody": "The NGO {{name}} was not approved by our curation team.",
   "orgNotice.reasonLabel": "Reason",
