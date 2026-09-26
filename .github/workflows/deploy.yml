@@ -24,6 +24,13 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Warn if the admin gate is unconfigured
+        env:
+          VITE_ADMIN_UID: ${{ secrets.VITE_ADMIN_UID }}
+        run: |
+          if [ -z "$VITE_ADMIN_UID" ]; then
+            echo "::warning::VITE_ADMIN_UID is empty, so the admin panel stays hidden. It must be a Repository secret (Settings > Secrets and variables > Actions > Secrets), not an Environment secret, because this workflow declares no environment."
+          fi
       - run: npm run build
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
@@ -35,7 +42,6 @@ jobs:
           VITE_CLOUDINARY_CLOUD_NAME: ${{ secrets.VITE_CLOUDINARY_CLOUD_NAME }}
           VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
           VITE_ADMIN_UID: ${{ secrets.VITE_ADMIN_UID }}
-          VITE_RECAPTCHA_SITE_KEY: ${{ secrets.VITE_RECAPTCHA_SITE_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
