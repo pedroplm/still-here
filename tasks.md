@@ -21,6 +21,28 @@
 - [ ] Componentes reutilizáveis — card layouts duplicados entre páginas, extrair `AnimalCard`/`OrgCard`
 - [x] Sidebar dashboard — adicionar item "Doações" conforme menu previsto no plano
 
+## Idiomas pt/en (2026-09-26)
+
+Feito:
+
+- [x] `i18next` + `react-i18next` instalados; `resolveJsonModule` ligado
+- [x] `src/i18n/` com `index.ts`, `i18next.d.ts`, `pt.json`, `en.json` (289 chaves cada)
+- [x] `en.json` tipado contra `pt.json` — chave faltando quebra `npm run build`
+- [x] `LanguageSwitcher` no `Navbar` e no `Footer`; escolha persistida em `stillhere:lang`
+- [x] Todas as telas e componentes traduzidos (públicas, auth, dashboard, admin, `EmptyAnimals`, `App.tsx`)
+- [x] `usePageMeta` por idioma + `og:locale` alternando `pt_BR`/`en_US`; `documentElement.lang` sincronizado
+- [x] Serviços devolvem chave, não frase — `cnpj.ts` (`reasonKey`), `storage.service.ts` (`ImageValidationError`), `createOrganization` (`code: 'invalid-cnpj-digits'`)
+- [x] `data/categories.ts` separado em `value` (contrato Firestore) + `labelKey`
+- [x] Auditoria por grep — nenhum acento português remanescendo em `src/**/*.tsx`
+- [x] `npm run build` e `npm run lint` limpos, zero warning
+
+Falta:
+
+- [ ] Testar troca de idioma e persistência no navegador (build validado, não a UX)
+- [ ] Publicar — commit + push com autorização do Pedri
+- [ ] Se passar a exigir versão en indexada: `/en/...` com `hreflang`, ou campo bilíngue nos documentos
+- [ ] `data/educational-content.ts` e `data/demo-animals.ts` sem tradução — não são consumidos por nenhuma tela, só re-exportados
+
 ## Segurança / aprovação de ONG (alpha)
 
 Feito:
@@ -35,11 +57,15 @@ Feito:
 - [x] `compact()` em todo write — Firestore rejeita o documento inteiro se houver `undefined`
 - [x] Índice composto `organizationId + ownerUid + createdAt` publicado
 - [x] Matriz de 49 casos contra as regras publicadas (anônimo, dono, ONG falsa, admin) — 49/49
+- [x] Teste do batch atômico do cadastro (org + trava CNPJ) — 409 em CNPJ duplicado, sem doc órfão
+- [x] Secret `VITE_ADMIN_UID` no GitHub e DNS do domínio no ar com HTTPS
+
+Adiado:
+
+- [ ] App Check — desativado por decisão. O console do Firebase não oferece mais reCAPTCHA v3 classic, só Enterprise (Fraud Defense), que exige `ReCaptchaEnterpriseProvider` no código e chave no formato `projects/../locations/global/keys/..`. Detalhes em `HANDOFF.md` 3.6
 
 Falta (precisa de ação no console, não dá pra fazer por código):
 
-- [ ] Registrar chave reCAPTCHA v3 no App Check e colocar `VITE_RECAPTCHA_SITE_KEY` no `.env` e no secret do GitHub
-- [ ] Registrar o app no App Check e **aplicar enforcement** (só depois de testar com a chave)
-- [ ] Criar o secret `VITE_ADMIN_UID` no repositório GitHub
-- [ ] Apontar o DNS do domínio no GitHub Pages (`A` do apex + `CNAME` de `www`) e ativar HTTPS
+- [ ] Testar cadastro com CNPJ real válido e com um inválido (BrasilAPI nunca foi exercitada de verdade)
+- [ ] Testar o fluxo de aprovação ponta a ponta no navegador
 

@@ -93,7 +93,7 @@ export async function getOrganizationsByStatus(status: OrgStatus) {
 export async function createOrganization(data: Omit<Organization, 'id' | 'organizationId'>) {
   const cnpj = onlyDigits(data.cnpj)
   if (cnpj.length !== 14) {
-    throw new Error('CNPJ inválido. Confira os 14 dígitos.')
+    throw Object.assign(new Error('invalid_cnpj_digits'), { code: 'invalid-cnpj-digits' })
   }
 
   const orgRef = doc(collection(db, 'organizations'))

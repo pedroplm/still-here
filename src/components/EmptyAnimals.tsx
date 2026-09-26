@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getRandomDogImage } from '@/services/randomDog.service'
 
 interface EmptyAnimalsProps {
@@ -6,6 +7,7 @@ interface EmptyAnimalsProps {
 }
 
 export default function EmptyAnimals({ subtitle }: EmptyAnimalsProps) {
+  const { t } = useTranslation()
   const [imageUrl, setImageUrl] = useState('')
 
   useEffect(() => {
@@ -25,13 +27,11 @@ export default function EmptyAnimals({ subtitle }: EmptyAnimalsProps) {
       {imageUrl && (
         <img
           src={imageUrl}
-          alt="Amigo que já encontrou um lar"
+          alt={t('emptyAnimals.imageAlt')}
           className="w-56 h-56 object-cover rounded-full shadow-md mb-6"
         />
       )}
-      <p className="text-gray-700 text-lg font-medium">
-        Todos nossos amigos disponíveis foram adotados!
-      </p>
+      <p className="text-gray-700 text-lg font-medium">{t('emptyAnimals.message')}</p>
       {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
     </div>
   )

@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
+import type { TFunction } from 'i18next'
 import { register } from '@/services/auth.service'
 import { createOrganization } from '@/services/database.service'
 import { uploadImage } from '@/services/storage.service'
@@ -18,24 +20,33 @@ function formatWait(ms: number) {
   return `${min}min ${String(sec).padStart(2, '0')}s`
 }
 
-const ERROR_MESSAGES: Record<string, string> = {
-  'auth/email-already-in-use': 'Esse e-mail já tem conta. Tente entrar.',
-  'auth/weak-password': 'Senha muito fraca. Use pelo menos 6 caracteres.',
-  'auth/too-many-requests': 'Muitas tentativas. Espere alguns minutos e tente de novo.',
-  'auth/operation-not-allowed': 'Cadastro temporariamente indisponível. Fale com a gente pelo e-mail de contato.',
-  'already-exists':
-    'Esse CNPJ já tem cadastro aqui. Se foi você, entre com o e-mail e a senha que você criou.',
+const ERROR_MESSAGE_KEYS = {
+  'auth/email-already-in-use': 'register.errEmailInUse',
+  'auth/weak-password': 'register.errWeakPassword',
+  'auth/too-many-requests': 'register.errTooManyRequests',
+  'auth/operation-not-allowed': 'register.errNotAllowed',
+  'already-exists': 'register.errCnpjTaken',
+  'invalid-cnpj-digits': 'cnpj.errDigits',
+} as const
+
+type FirebaseErrorCode = keyof typeof ERROR_MESSAGE_KEYS
+
+function isFirebaseErrorCode(code: string): code is FirebaseErrorCode {
+  return Object.hasOwn(ERROR_MESSAGE_KEYS, code)
 }
 
-function friendlyError(err: unknown, fallback: string) {
+function friendlyError(t: TFunction, err: unknown, fallback: string) {
   if (typeof err === 'object' && err !== null && 'code' in err) {
     const code = (err as { code?: unknown }).code
-    if (typeof code === 'string' && ERROR_MESSAGES[code]) return ERROR_MESSAGES[code]
+    if (typeof code === 'string' && isFirebaseErrorCode(code)) {
+      return t(ERROR_MESSAGE_KEYS[code])
+    }
   }
   return err instanceof Error && err.message ? err.message : fallback
 }
 
 export default function Register() {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     orgName: '',
     email: '',
@@ -74,7 +85,7 @@ export default function Register() {
     const remaining = recordRegisterAttempt()
     if (remaining > 0) {
       setUnlockAt(Date.now() + remaining)
-      setError('Muitas tentativas em pouco tempo.')
+      setError(t('register.errRateLimitedShort'))
       return
     }
 
@@ -82,12 +93,18 @@ export default function Register() {
     try {
       const check = await checkCnpj(formData.cnpj)
       if (!check.ok) {
-        setError(check.reason ?? 'CNPJ inválido.')
+        setError(
+          check.reasonKey
+            ? t(check.reasonKey, { situation: check.situation ?? '' })
+            : t('register.errInvalidCnpj'),
+        )
         setLoading(false)
         return
       }
       if (check.checked && check.legalName) {
-        setCnpjHint(`Receita Federal: ${check.legalName} (${check.situation ?? 'ATIVA'})`)
+        setCnpjHint(
+          t('register.cnpjHint', { legalName: check.legalName, situation: check.situation ?? 'ATIVA' }),
+        )
       }
 
       const user = await register(formData.email, formData.password, formData.orgName)
@@ -110,7 +127,7 @@ export default function Register() {
       clearRegisterAttempts()
       navigate('/dashboard')
     } catch (err: unknown) {
-      setError(friendlyError(err, 'Erro ao criar conta'))
+      setError(friendlyError(t, err, t('register.errCreateAccount')))
     } finally {
       setLoading(false)
     }
@@ -126,13 +143,11 @@ export default function Register() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 2.4 17.5A1.9 1.9 0 0 0 4 20.4h16a1.9 1.9 0 0 0 1.6-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Muitas tentativas</h1>
-        <p className="text-gray-600 mb-4">
-          Você atingiu o limite de 3 cadastros em 5 minutos.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">{t('register.lockedTitle')}</h1>
+        <p className="text-gray-600 mb-4">{t('register.lockedBody')}</p>
         <p className="text-lg font-semibold text-red-600 mb-6">{formatWait(waitLeft)}</p>
         <Link to="/" className="text-sm text-emerald-600 hover:underline">
-          Voltar para a home
+          {t('register.backHome')}
         </Link>
       </div>
     )
@@ -140,11 +155,8 @@ export default function Register() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-20">
-      <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">Cadastrar ONG</h1>
-        <p className="text-sm text-gray-500 text-center mb-6">
-          Seu cadastro passa por curadoria antes de liberar o painel. Enviamos um e-mail de
-          confirmação — confirme o endereço para continuar.
-        </p>
+      <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">{t('register.h1')}</h1>
+      <p className="text-sm text-gray-500 text-center mb-6">{t('register.subtitle')}</p>
       {error && (
         <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>
       )}
@@ -153,14 +165,14 @@ export default function Register() {
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nome da ONG</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.orgName')}</label>
           <input
             type="text"
             required
             value={formData.orgName}
             onChange={(e) => updateField('orgName', e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            placeholder="Ex: Patinhas do Bem"
+            placeholder={t('register.orgNamePlaceholder')}
           />
         </div>
         <div>
@@ -174,12 +186,10 @@ export default function Register() {
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             placeholder="00.000.000/0000-00"
           />
-          <p className="text-xs text-gray-400 mt-1">
-            Conferimos na Receita Federal se a empresa existe e está ATIVA.
-          </p>
+          <p className="text-xs text-gray-400 mt-1">{t('register.cnpjHint2')}</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.email')}</label>
           <input
             type="email"
             required
@@ -190,7 +200,7 @@ export default function Register() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.password')}</label>
           <input
             type="password"
             required
@@ -203,7 +213,7 @@ export default function Register() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.city')}</label>
             <input
               type="text"
               required
@@ -213,7 +223,7 @@ export default function Register() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.state')}</label>
             <input
               type="text"
               required
@@ -226,7 +236,7 @@ export default function Register() {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Telefone (WhatsApp)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.phone')}</label>
           <input
             type="tel"
             required
@@ -235,7 +245,7 @@ export default function Register() {
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             placeholder="(11) 99999-9999"
           />
-          <p className="text-xs text-gray-400 mt-1">Número com WhatsApp — será usado para contato sobre adoções.</p>
+          <p className="text-xs text-gray-400 mt-1">{t('register.phoneHint')}</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
@@ -246,10 +256,10 @@ export default function Register() {
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             placeholder="@usuario"
           />
-          <p className="text-xs text-gray-400 mt-1">Perfil do Instagram da ONG.</p>
+          <p className="text-xs text-gray-400 mt-1">{t('register.instagramHint')}</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Logo da ONG</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.logo')}</label>
           <input
             type="file"
             accept="image/*"
@@ -257,24 +267,24 @@ export default function Register() {
             onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
             className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
           />
-          <p className="text-xs text-gray-400 mt-1">Foto de perfil da ONG (aparecerá como avatar redondo).</p>
+          <p className="text-xs text-gray-400 mt-1">{t('register.logoHint')}</p>
         </div>
         <button
           type="submit"
           disabled={loading}
           className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50"
         >
-          {loading ? 'Enviando...' : 'Enviar para curadoria'}
+          {loading ? t('register.sending') : t('register.submit')}
         </button>
         {attemptsLeft <= 2 && (
           <p className="text-xs text-amber-600 text-center">
-            Restam {attemptsLeft} tentativa{attemptsLeft === 1 ? '' : 's'} antes do bloqueio temporário.
+            {t('register.attemptsLeft', { count: attemptsLeft })}
           </p>
         )}
       </form>
       <p className="text-sm text-gray-500 text-center mt-6">
-        Já tem conta?{' '}
-        <Link to="/login" className="text-emerald-600 hover:underline">Entrar</Link>
+        {t('register.haveAccount')}{' '}
+        <Link to="/login" className="text-emerald-600 hover:underline">{t('nav.login')}</Link>
       </p>
     </div>
   )

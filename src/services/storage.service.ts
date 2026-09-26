@@ -6,13 +6,15 @@ export const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
 
 export type UploadProgressHandler = (percent: number | ((prev: number) => number)) => void
 
-export function validateImageFile(file: File | null): string | null {
+export type ImageValidationError = 'image.errType' | 'image.errSize'
+
+export function validateImageFile(file: File | null): ImageValidationError | null {
   if (!file) return null
   if (!file.type.startsWith('image/')) {
-    return 'Selecione um arquivo de imagem válido.'
+    return 'image.errType'
   }
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
-    return `Imagem muito grande. Máximo de ${MAX_IMAGE_SIZE_MB}MB.`
+    return 'image.errSize'
   }
   return null
 }
@@ -67,7 +69,7 @@ export async function uploadImage(
     })
 
     if (!res.ok) {
-      throw new Error('Upload failed')
+      throw new Error(`cloudinary_upload_${res.status}`)
     }
 
     onProgress?.(100)

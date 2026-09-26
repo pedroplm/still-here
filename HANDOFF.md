@@ -27,9 +27,9 @@ Leia inteiro antes de mexer em qualquer coisa.
 | Dono da ONG demo | `teste@teste.com` | `dcJk9OXJAbUWKiDyL88OxWTrqOa2` | e-mail verificado |
 
 A senha do admin foi gerada por script e está em
-`%TEMP%\opencode\adminpw.txt` (fora do repo). **Rotacionar.** A senha de
-`teste@teste.com` foi sobrescrita por valores aleatórios durante os testes de
-regras — se precisar, resetar pelo Firebase Console.
+`%TEMP%\opencode\adminpw.txt` (fora do repo). **Rotacionar e apagar esse arquivo.**
+A senha de `teste@teste.com` foi sobrescrita por valores aleatórios durante os
+testes de regras — se precisar, resetar pelo Firebase Console.
 
 ### Comandos
 
@@ -64,6 +64,38 @@ firebase deploy --only firestore:rules,firestore:indexes --project still-here-95
 - `index.html` — tags OG/canonical estáticas para crawler que não executa JS.
 - `public/robots.txt` — bloqueia `/dashboard`, `/login`, `/registrar`, aponta pro sitemap.
 - `public/sitemap.xml` — 7 rotas públicas.
+
+### Idiomas pt/en (i18next, 2026-09-26)
+
+- `src/i18n/pt.json` e `src/i18n/en.json` — 289 chaves cada, flat, notação de ponto.
+- `src/i18n/index.ts` — `detectLanguage()` lê `localStorage` → navegador → `pt`.
+  Chave de persistência: `stillhere:lang`. `i18n.init` é síncrono (`initImmediate: false`).
+- `src/i18n/i18next.d.ts` — `en.json` é `Record<keyof typeof pt, string>`, então
+  **chave faltando em inglês quebra o build**. `t()` só aceita literal.
+- `src/components/LanguageSwitcher.tsx` — no `Navbar` e no `Footer`.
+- `usePageMeta` monta title/description/OG/Twitter por idioma e alterna
+  `og:locale` entre `pt_BR` e `en_US`.
+- `document.documentElement.lang` é atualizado pelo `languageChanged` do i18next e
+  também no boot (o evento pode ter disparado antes do listener).
+- serviços nunca montam frase: `cnpj.ts` devolve `reasonKey`, `storage.service.ts`
+  devolve `ImageValidationError`, `database.service.ts` lança
+  `Object.assign(new Error(...), { code: 'invalid-cnpj-digits' })` para o
+  `friendlyError` de `Register.tsx` mapear. Erro cru nunca chega na tela.
+- `data/categories.ts` — `value` em português (contrato Firestore) + `labelKey`.
+- `index.html` segue em português como fallback de crawler; meta real vem do hook.
+- Custo: chunk principal 67,8 kB → 98,9 kB (gzip 21,7 kB → 30,5 kB).
+
+Limitação aceita: idioma não está na URL. Ganha Canonical limpo e links já
+indexados preservados; perde versioning por idioma no buscador, e o texto
+persistido (descrição de animal/ONG, motivo de rejeição) continua no idioma em
+que foi gravado. Se virar requisito, o caminho é campo bilíngue no documento ou
+`/en/...` com `hreflang`.
+
+Não traduzido de propósito: `data/educational-content.ts` e `data/demo-animals.ts`
+não são consumidos por nenhuma tela (só re-exportados por `data/index.ts`).
+Traduzir código morto é custo sem retorno — se forem usados depois, traduzir na
+hora. `data/demo-orgs.ts` **é** usado por `database.service.ts` e ficou em
+português como os outros dados já persistidos.
 
 ### Aprovação de ONGs (feature `e1717d2` + revisão de segurança)
 
@@ -130,6 +162,15 @@ reescritas, publicadas e **validadas com 49 casos contra o Firestore real**
 `cnpj/{14 dígitos}` com `{ organizationId, createdAt }`. A trava é create-only e
 `allow read: if false` — CNPJ de terceiro não é enumerável. Duplicar dá 409.
 
+O batch foi testado com o mesmo formato que o SDK envia (`currentDocument.exists:
+false` nas duas escritas):
+
+| Cenário | Resultado |
+|---|---|
+| org + trava com CNPJ livre | commit único, os dois docs gravados |
+| mesmo CNPJ de novo | 409 `ALREADY_EXISTS` |
+| org do batch que falhou | **não é criada** — sem documento órfão |
+
 ### 3.4 E-mail verificado
 
 - `register()` dispara `sendEmailVerification`.
@@ -148,11 +189,32 @@ reescritas, publicadas e **validadas com 49 casos contra o Firestore real**
 rejeição. **Rejeitar sempre pelo painel**, não por script — a regra impede o dono de
 republicar, mas não despublica o que já está no ar.
 
-### 3.6 App Check (código pronto, falta ativar)
+### 3.6 App Check — ADIADO (2026-09-26)
 
-`src/services/firebase.config.ts` inicializa reCAPTCHA v3 **só** se
-`VITE_RECAPTCHA_SITE_KEY` estiver preenchida. Vazio, não inicializa — dá para testar
-antes de obrigar.
+Decisão do Pedri: tirar por agora. `VITE_RECAPTCHA_SITE_KEY` fica vazia, e o
+build elimina o `initializeAppCheck` inteiro (dead code), então o bundle não
+carrega nada de App Check.
+
+O código continua em `src/services/firebase.config.ts`, guardado por `if
+(recaptchaSiteKey)`. Para reativar é só preencher a variável — **mas** o caminho
+mudarou desde a primeira tentativa:
+
+- O console do Firebase **não oferece mais reCAPTCHA v3 classic**; ele empurra
+  para **reCAPTCHA Enterprise** (Fraud Defense). Criar chave v3 classic em
+  `google.com/recaptcha/admin/create` e colar no App Check **salva sem erro e não
+  funciona** — a validação do campo é só de formato e a falha só aparece em
+  runtime, quando o App Check pede token.
+- Com Enterprise, a chave tem formato `projects/{NUMERO}/locations/global/keys/{ID}`,
+  não `6Lec-...`.
+- Com Enterprise, o código precisa de `ReCaptchaEnterpriseProvider`, não
+  `ReCaptchaV3Provider`. Uma linha em `firebase.config.ts`.
+- Enterprise web tem cota de 10.000 assessments/mês grátis. TTL do token é
+  configurável de 30 min a 7 dias; o default (e o que foi deixado) é 1 dia.
+- "Salvou no console" não é sinal de que funciona. O único teste válido é App
+  Check → *Metrics* mostrar request válido, com enforcement **desligado**.
+
+Enquanto não ativar, o gap conhecido continua: usuário sem e-mail verificado
+consegue criar org e reservar CNPJ. A aprovação é manual, o que limita o dano.
 
 ### 3.7 Armadilhas do Firestore já mordidas
 
@@ -178,41 +240,34 @@ O harness usado para a validação ficou em `%TEMP%\opencode\verify-rules.ps1`
 
 ## 4. Pendências bloqueantes (precisa do Pedri)
 
-### 4.1 DNS — o domínio ainda NÃO está no ar
+### 4.1 DNS — RESOLVIDO
 
-Na última verificação, os servidores autoritativos devolviam zona vazia para o apex e NXDOMAIN
-para `www`. Motivo provável: a transição de 2h do registro.br (remoção da chave DNSSEC antiga) não
-tinha terminado. **Reconferir depois que a contagem zerar.**
+O domínio está no ar. Verificado em 2026-09-26, depois do push do `ed6c030`:
 
-Já cadastrado (pendente de publicação): 4 registros `A` do apex.
-
-Falta adicionar: **CNAME de `www`**. A tela do registro.br que o Pedri encontrou só tinha os campos
-"Nome" e "Endereço IPv4", ou seja, não achou o seletor de tipo de registro para CNAME. Sem isso
-`www.stillhere.com.br` dá erro, embora o domínio sem `www` funcione.
-
-Depois que o DNS resolver, no GitHub: **Settings → Pages → Custom domain = `stillhere.com.br` → Save**.
-O GitHub retenta sozinho e vira verde. Aí ligar **Enforce HTTPS**.
-
-Confirmação:
-
-```powershell
-nslookup stillhere.com.br          # esperado: 185.199.108/109/110/111.153
-nslookup www.stillhere.com.br      # esperado: pedroplm.github.io
+```text
+stillhere.com.br        -> 185.199.108/109/110/111.153
+www.stillhere.com.br    -> CNAME para os mesmos IPs
+https://stillhere.com.br/       -> 200, SSL válido
+https://www.stillhere.com.br/   -> 200, SSL válido
 ```
 
-### 4.2 Secret `VITE_ADMIN_UID` no GitHub
+Ou seja: o CNAME de `www` foi cadastrado e o HTTPS do GitHub Pages já está
+forçando. Não mexer no DNS.
 
-Settings → Secrets and variables → Actions → `VITE_ADMIN_UID` = `kimc5Hp2OpT4TsFyX15O8DQ5kBl2`.
-O `gh` CLI não está instalado nesta máquina, então não dá para criar por script.
-O UID **já** está no `.env` local e em `firestore.rules` — só o secret falta. Sem ele o build
-passa, mas o link "Admin" nunca aparece.
+O Pages está servindo o bundle novo (hashes de assets mudaram depois do deploy,
+e `firebase-firestore-uGVkh3O3.js` bate com o build local). `firebase.config` e
+`index` têm hash diferente do local porque o CI embute os valores dos secrets —
+esperado.
 
-### 4.3 App Check
+### 4.2 Secret `VITE_ADMIN_UID` no GitHub — FEITO
 
-1. Firebase Console → App Check → registrar chave reCAPTCHA v3.
-2. `VITE_RECAPTCHA_SITE_KEY` no `.env` e no secret do GitHub.
-3. Testar em produção/staging **antes** de registrar o app.
-4. Registrar o app e aplicar enforcement.
+O Pedri cadastrou `VITE_ADMIN_UID = kimc5Hp2OpT4TsFyX15O8DQ5kBl2` em
+Settings → Secrets and variables → Actions. Build do `ed6c030` passou com ele.
+
+### 4.3 App Check — adiado, sem pendência
+
+Ver 3.6. Sem ação no console agora. Se-activated, o segredo
+`VITE_RECAPTCHA_SITE_KEY` volta ao workflow.
 
 ---
 
@@ -261,10 +316,17 @@ Os domínios `stillhere.com.br` e `www.stillhere.com.br` já estão em Authentic
 
 ## 7. Checklist da próxima sessão
 
-1. `nslookup stillhere.com.br` e `nslookup www.stillhere.com.br`. O domínio já subiu?
-2. Se sim: salvar o custom domain no GitHub Pages, conferir HTTPS, adicionar o CNAME de `www` se faltar.
-3. Criar o secret `VITE_ADMIN_UID` no GitHub.
-4. Ativar App Check: chave reCAPTCHA v3 → `.env` + secret → testar → enforcement.
-5. Testar cadastro com CNPJ real válido e com um inválido.
-6. Testar o fluxo de aprovação ponta a ponta no navegador (registrar → ver "em análise" → aprovar em `/admin/ongs`).
-7. Rotacionar a senha do admin.
+1. Testar cadastro com CNPJ real válido e com um inválido (BrasilAPI ainda não foi exercitada de verdade).
+2. Testar o fluxo de aprovação ponta a ponta no navegador (registrar → ver "em análise" → aprovar em `/admin/ongs`).
+3. Rotacionar a senha do admin no console (a gerada por script foi apagada junto com o token do CLI).
+4. App Check só quando for reativado — e por Enterprise, não v3 classic. Ver 3.6.
+
+## 8. Commits de 2026-09-26
+
+```
+ed6c030  fix: enforce NGO approval, email verification and CNPJ uniqueness in rules
+65cf6cf  docs: add project handoff and security backlog
+e1717d2  feat: gate NGO registration behind admin approval
+39e0612  feat: add SEO metadata, og image and sitemap
+64dfe43  feat: serve stillhere.com.br at root
+```

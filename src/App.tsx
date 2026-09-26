@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -23,9 +24,10 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const AdminOrganizations = lazy(() => import('./pages/AdminOrganizations'))
 
 function PageLoader() {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="text-gray-400">Carregando...</div>
+      <div className="text-gray-400">{t('common.loading')}</div>
     </div>
   )
 }

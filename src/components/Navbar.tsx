@@ -1,19 +1,22 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { logout } from '@/services/auth.service'
 import { isAdminUid } from '@/services/admin'
 import logoUrl from '@/assets/logo.svg'
+import LanguageSwitcher from './LanguageSwitcher'
 
 const NAV_LINKS = [
-  { to: '/animais', label: 'Animais' },
-  { to: '/ongs', label: 'ONGs' },
-  { to: '/como-adotar', label: 'Como Adotar' },
-  { to: '/adocao-responsavel', label: 'Adoção Responsável' },
-  { to: '/sobre', label: 'Sobre' },
-]
+  { to: '/animais', label: 'nav.animals' },
+  { to: '/ongs', label: 'nav.orgs' },
+  { to: '/como-adotar', label: 'nav.howToAdopt' },
+  { to: '/adocao-responsavel', label: 'nav.responsibleAdoption' },
+  { to: '/sobre', label: 'nav.about' },
+] as const
 
 export default function Navbar() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const { pathname } = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -44,18 +47,19 @@ export default function Navbar() {
                     : 'text-gray-600 hover:text-emerald-600 rounded-lg px-3 py-2 transition-colors'
                 }
               >
-                {link.label}
+                {t(link.label)}
               </Link>
             ))}
           </div>
           <div className="flex gap-3 items-center">
+            <LanguageSwitcher className="hidden sm:inline-flex" />
             {user ? (
               <>
                 <Link
                   to="/dashboard"
                   className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 hover:text-white"
                 >
-                  Dashboard
+                  {t('nav.dashboard')}
                 </Link>
                 {isAdmin && (
                   <Link
@@ -63,34 +67,36 @@ export default function Navbar() {
                     className={`text-sm px-4 py-2 rounded-lg ${
                       isActive('/admin')
                         ? 'bg-amber-100 text-amber-700'
-                        : 'text-amber-600 hover:bg-amber-50'
+                        : 'text-amber-600 hover:text-amber-50'
                     }`}
                   >
-                    Admin
+                    {t('nav.admin')}
                   </Link>
                 )}
                 <button
                   onClick={handleLogout}
                   className="text-sm text-gray-500 hover:text-red-600"
                 >
-                  Sair
+                  {t('nav.logout')}
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-sm text-gray-600 hover:text-emerald-600">Entrar</Link>
+                <Link to="/login" className="text-sm text-gray-600 hover:text-emerald-600">
+                  {t('nav.login')}
+                </Link>
                 <Link
                   to="/registrar"
                   className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
                 >
-                  Cadastrar ONG
+                  {t('nav.registerOrg')}
                 </Link>
               </>
             )}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="md:hidden p-1 text-gray-600 hover:text-emerald-600"
-              aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-label={menuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 {menuOpen ? (
@@ -117,7 +123,7 @@ export default function Navbar() {
                     : 'block text-gray-600 hover:text-emerald-600 rounded-lg px-3 py-2'
                 }
               >
-                {link.label}
+                {t(link.label)}
               </Link>
             ))}
           </div>

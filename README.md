@@ -111,14 +111,53 @@ O que isso garante:
   falha inteira se a regra não for provável pelas constraints — por isso as
   queries sempre filtram por `status`/`available`/`ownerUid`.
 
-## App Check
+## Idiomas (pt / en)
 
-A proteção contra bots está em *App Check → reCAPTCHA v3*:
+Tradução via `i18next` + `react-i18next`. Dicionários em `src/i18n/pt.json` e
+`src/i18n/en.json`, com **chaves flat** em notação de ponto (`animals.h1`).
 
-1. Registre uma chave reCAPTCHA v3 em *App Check*.
-2. Preencha `VITE_RECAPTCHA_SITE_KEY` no `.env` e nos secrets do deploy.
-3. Só depois registre o app e **aplique a enforcement**. Com a chave vazia o
-   código não inicializa o App Check, então dá para testar antes de obrigar.
+Regras que valem para quem for mexer nisso:
+
+- `pt.json` é a fonte da verdade. `en.json` é tipado como
+  `Record<keyof typeof pt, string>`, então **chave faltando em `en.json` quebra o
+  `npm run build`**. Não é dependência de locale em tempo de execução.
+- `t()` só aceita chave literal. Nada de template literal
+  (`t(\`animals.${x}\`)`) — use `as const` num array/objeto de chaves, como em
+  `pages/Termos.tsx` e `pages/dashboard/AnimalsManager.tsx`.
+- Serviços **não escrevem texto de interface**. `cnpj.ts` e `storage.service.ts`
+  devolvem chave (`'cnpj.errDigits'`, `'image.errSize'`), não frase. A tradução
+  acontece no call site.
+- Valor gravado no Firestore ≠ rótulo exibido. `data/categories.ts` guarda
+  `value: 'cachorro'` com `labelKey: 'species.cachorro'`; o dado fica em
+  português, a exibição é traduzida.
+- `document.documentElement.lang` e `og:locale` seguem o idioma ativo.
+- O idioma vem de `localStorage` → navegador → `pt`. A escolha fica salva em
+  `stillhere:lang`. Para forçar pt sempre, mexer em `detectLanguage()` em
+  `src/i18n/index.ts`.
+- `index.html` fica em português de propósito: é o fallback para crawler que não
+  executa JavaScript. Quem executa recebe meta por idioma via `usePageMeta`.
+
+Idioma **não** está na URL. Trocar de idioma não muda o endereço, o que
+preserva os links já indexados e evita Canonical conflict. O custo é que as duas
+versões disputam a mesma URL nos buscadores.
+
+## App Check (desativado)
+
+Por decisão de escopo, o App Check está **desligado**: `VITE_RECAPTCHA_SITE_KEY`
+fica vazia e o build remove o `initializeAppCheck` do bundle. Sem isso, um bot
+consegue criar cadastro de ONG e reservar CNPJ — a aprovação manual limita o
+dano, mas não fecha o buraco.
+
+Para reativar, dois avisos que custaram tempo na primeira tentativa:
+
+- O console do Firebase não oferece mais **reCAPTCHA v3 classic**; ele empurra
+  para **reCAPTCHA Enterprise** (Fraud Defense). Criar chave v3 classic e colar
+  no App Check salva sem erro e não funciona — a falha só aparece em runtime.
+- Com Enterprise, a chave tem formato `projects/{NUMERO}/locations/global/keys/{ID}`
+  e o código precisa de `ReCaptchaEnterpriseProvider`, não `ReCaptchaV3Provider`.
+
+Enforcement só deve ser aplicado depois de ver request válido em App Check →
+*Metrics*. "Salvou no console" não prova nada.
 
 ## Cloudinary — setup
 

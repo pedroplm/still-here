@@ -1,8 +1,14 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const SITE_NAME = 'Still Here'
 const SITE_URL = 'https://stillhere.com.br'
 const DEFAULT_IMAGE = `${SITE_URL}/og-default.png`
+
+const OG_LOCALE: Record<string, string> = {
+  pt: 'pt_BR',
+  en: 'en_US',
+}
 
 function absoluteUrl(path: string) {
   if (/^https?:\/\//.test(path)) return path
@@ -30,6 +36,9 @@ function setCanonical(url: string) {
 }
 
 export function usePageMeta(title: string, description?: string, image?: string) {
+  const { i18n } = useTranslation()
+  const locale = OG_LOCALE[i18n.resolvedLanguage ?? 'pt'] ?? OG_LOCALE.pt
+
   useEffect(() => {
     document.title = title
     const url = `${SITE_URL}${window.location.pathname}`
@@ -39,7 +48,8 @@ export function usePageMeta(title: string, description?: string, image?: string)
     setMeta('property', 'og:url', url)
     setMeta('property', 'og:type', 'website')
     setMeta('property', 'og:site_name', SITE_NAME)
-    setMeta('property', 'og:locale', 'pt_BR')
+    setMeta('property', 'og:locale', locale)
+    setMeta('property', 'og:locale:alternate', locale === OG_LOCALE.pt ? OG_LOCALE.en : OG_LOCALE.pt)
     setMeta('property', 'og:image', img)
 
     setMeta('name', 'twitter:card', 'summary_large_image')
@@ -53,5 +63,5 @@ export function usePageMeta(title: string, description?: string, image?: string)
       setMeta('property', 'og:description', description)
       setMeta('name', 'twitter:description', description)
     }
-  }, [title, description, image])
+  }, [title, description, image, locale])
 }

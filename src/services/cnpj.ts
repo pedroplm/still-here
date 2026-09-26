@@ -1,7 +1,9 @@
+export type CnpjReason = 'cnpj.errDigits' | 'cnpj.errNotFound' | 'cnpj.errNotActive'
+
 export interface CnpjCheck {
   ok: boolean
   checked: boolean
-  reason?: string
+  reasonKey?: CnpjReason
   legalName?: string
   situation?: string
 }
@@ -22,12 +24,12 @@ export function maskCnpj(value: string) {
 export async function checkCnpj(raw: string): Promise<CnpjCheck> {
   const digits = onlyDigits(raw)
   if (digits.length !== 14) {
-    return { ok: false, checked: true, reason: 'O CNPJ precisa ter 14 dígitos.' }
+    return { ok: false, checked: true, reasonKey: 'cnpj.errDigits' }
   }
   try {
     const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`)
     if (res.status === 404) {
-      return { ok: false, checked: true, reason: 'Esse CNPJ não existe na base da Receita Federal.' }
+      return { ok: false, checked: true, reasonKey: 'cnpj.errNotFound' }
     }
     if (!res.ok) {
       return { ok: true, checked: false }
@@ -38,7 +40,7 @@ export async function checkCnpj(raw: string): Promise<CnpjCheck> {
       return {
         ok: false,
         checked: true,
-        reason: `Na Receita Federal a situação desta empresa é "${situation}", não "ATIVA".`,
+        reasonKey: 'cnpj.errNotActive',
         situation,
       }
     }

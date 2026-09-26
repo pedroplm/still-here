@@ -1,25 +1,33 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { getOrganization, getAvailableAnimals } from '@/services/database.service'
 import type { Organization, Animal } from '@/types'
 import { FaWhatsapp, FaInstagram, FaGlobe, FaPix } from 'react-icons/fa6'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { buildAnimalSlug } from '@/utils/slug'
+import { ageOptions, sizeCategories, speciesCategories } from '@/data/categories'
 import EmptyAnimals from '@/components/EmptyAnimals'
 
 export default function OngDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const [org, setOrg] = useState<Organization | null>(null)
   const [animals, setAnimals] = useState<Animal[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<'notFound' | 'loadError' | null>(null)
+
+  function ageLabelFor(age: string) {
+    const known = ageOptions.find((a) => a.value === age)
+    return known ? t(known.labelKey) : age
+  }
 
   useEffect(() => {
     if (!id) return
     getOrganization(id)
       .then(async (data) => {
         if (!data) {
-          setError('ONG não encontrada.')
+          setError('notFound')
           return
         }
         setOrg(data)
@@ -29,26 +37,28 @@ export default function OngDetail() {
           setAnimals([])
         }
       })
-      .catch(() => setError('Erro ao carregar a ONG. Tente novamente.'))
+      .catch(() => setError('loadError'))
       .finally(() => setLoading(false))
   }, [id])
 
   usePageMeta(
-    org ? `${org.name} · Still Here` : 'ONG · Still Here',
+    org ? t('ongDetail.metaTitle', { name: org.name }) : t('ongDetail.metaTitleFallback'),
     org?.description ?? undefined,
     org?.logoUrl ?? undefined,
   )
 
   if (loading) {
-    return <div className="text-gray-400 text-center py-20">Carregando...</div>
+    return <div className="text-gray-400 text-center py-20">{t('common.loading')}</div>
   }
 
   if (error || !org) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-500 mb-4">{error || 'ONG não encontrada.'}</p>
+        <p className="text-gray-500 mb-4">
+          {error === 'loadError' ? t('ongDetail.loadError') : t('ongDetail.notFound')}
+        </p>
         <Link to="/ongs" className="text-emerald-600 hover:underline">
-          Ver todas as ONGs
+          {t('ongDetail.seeAll')}
         </Link>
       </div>
     )
@@ -57,7 +67,7 @@ export default function OngDetail() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <Link to="/ongs" className="text-sm text-emerald-600 hover:underline">
-        ← Voltar para ONGs
+        ← {t('ongDetail.back')}
       </Link>
 
       <div className="mt-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
@@ -102,7 +112,7 @@ export default function OngDetail() {
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-100"
           >
-            <FaWhatsapp /> WhatsApp
+            <FaWhatsapp /> {t('ongDetail.contactWhatsapp')}
           </a>
         )}
         {org.instagram && (
@@ -112,7 +122,7 @@ export default function OngDetail() {
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
           >
-            <FaInstagram /> Instagram
+            <FaInstagram /> {t('ongDetail.contactInstagram')}
           </a>
         )}
         {org.website && (
@@ -122,7 +132,7 @@ export default function OngDetail() {
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
           >
-            <FaGlobe /> Website
+            <FaGlobe /> {t('ongDetail.contactWebsite')}
           </a>
         )}
       </div>
@@ -130,11 +140,11 @@ export default function OngDetail() {
       {(org.pixKey || org.pixQrCodeUrl) && (
         <div className="mt-8 border rounded-xl p-6 bg-gray-50">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-3">
-            <FaPix className="text-emerald-600" /> Doação via PIX
+            <FaPix className="text-emerald-600" /> {t('ongDetail.pix.title')}
           </h2>
           {org.pixKey && (
             <div className="mb-3">
-              <p className="text-sm text-gray-500">Chave PIX:</p>
+              <p className="text-sm text-gray-500">{t('ongDetail.pix.keyLabel')}</p>
               <p className="text-gray-800 font-medium bg-white border rounded-lg px-4 py-2 inline-block mt-1 select-all">
                 {org.pixKey}
               </p>
@@ -143,7 +153,7 @@ export default function OngDetail() {
           {org.pixQrCodeUrl && (
             <img
               src={org.pixQrCodeUrl}
-              alt="QR Code PIX"
+              alt={t('ongDetail.pix.qrAlt')}
               className="h-48 rounded-lg bg-white p-2 border"
             />
           )}
@@ -152,7 +162,7 @@ export default function OngDetail() {
 
       {animals.length > 0 && (
         <div className="mt-10">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Animais disponíveis</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">{t('ongDetail.availableAnimals')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {animals.filter((a): a is Animal & { id: string } => !!a.id).map((animal) => (
               <Link
@@ -167,8 +177,12 @@ export default function OngDetail() {
                 />
                 <div className="p-3">
                   <h3 className="font-semibold text-gray-800">{animal.name}</h3>
-                  <p className="text-sm text-gray-500 capitalize">
-                    {animal.species} · {animal.size} · {animal.age}
+                  <p className="text-sm text-gray-500">
+                    {t(speciesCategories.find((s) => s.value === animal.species)?.labelKey ?? 'species.outro')}
+                    {' · '}
+                    {t(sizeCategories.find((s) => s.value === animal.size)?.labelKey ?? 'size.medio')}
+                    {' · '}
+                    {ageLabelFor(animal.age)}
                   </p>
                 </div>
               </Link>
@@ -179,7 +193,7 @@ export default function OngDetail() {
 
       {animals.length === 0 && (
         <div className="mt-10">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Animais disponíveis</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">{t('ongDetail.availableAnimals')}</h2>
           <EmptyAnimals />
         </div>
       )}

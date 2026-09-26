@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { getAnimals, getOrganization } from '@/services/database.service'
 import type { Animal } from '@/types'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { buildAnimalSlug } from '@/utils/slug'
+import { sizeCategories, speciesCategories } from '@/data/categories'
 import EmptyAnimals from '@/components/EmptyAnimals'
 
 interface AnimalCard extends Animal {
@@ -11,27 +13,12 @@ interface AnimalCard extends Animal {
   orgName?: string
 }
 
-const SPECIES_OPTIONS = [
-  { value: 'cachorro', label: 'Cachorro' },
-  { value: 'gato', label: 'Gato' },
-  { value: 'ave', label: 'Ave' },
-  { value: 'roedor', label: 'Roedor' },
-  { value: 'outro', label: 'Outro' },
-]
-const SIZE_OPTIONS = [
-  { value: 'pequeno', label: 'Pequeno' },
-  { value: 'medio', label: 'Médio' },
-  { value: 'grande', label: 'Grande' },
-]
-
 export default function Animals() {
-  usePageMeta(
-    'Animais para adoção · Still Here',
-    'Veja os animais disponíveis para adoção responsável nas ONGs parceiras.',
-  )
+  const { t } = useTranslation()
+  usePageMeta(t('animals.meta.title'), t('animals.meta.description'))
   const [animals, setAnimals] = useState<AnimalCard[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [failed, setFailed] = useState(false)
   const [species, setSpecies] = useState('')
   const [size, setSize] = useState('')
 
@@ -48,7 +35,7 @@ export default function Animals() {
         )
         setAnimals(cards)
       })
-      .catch(() => setError('Erro ao carregar os animais. Tente novamente.'))
+      .catch(() => setFailed(true))
       .finally(() => setLoading(false))
   }, [])
 
@@ -61,16 +48,16 @@ export default function Animals() {
   }, [animals, species, size])
 
   if (loading) {
-    return <div className="text-gray-400 text-center py-20">Carregando...</div>
+    return <div className="text-gray-400 text-center py-20">{t('common.loading')}</div>
   }
 
-  if (error) {
-    return <div className="text-red-500 text-center py-20">{error}</div>
+  if (failed) {
+    return <div className="text-red-500 text-center py-20">{t('animals.loadError')}</div>
   }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Animais disponíveis</h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">{t('animals.h1')}</h1>
 
       {animals.length > 0 && (
         <div className="flex flex-wrap gap-3 mb-6">
@@ -79,9 +66,9 @@ export default function Animals() {
             onChange={(e) => setSpecies(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
-            <option value="">Espécie</option>
-            {SPECIES_OPTIONS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
+            <option value="">{t('animals.filterSpecies')}</option>
+            {speciesCategories.map((s) => (
+              <option key={s.value} value={s.value}>{t(s.labelKey)}</option>
             ))}
           </select>
           <select
@@ -89,9 +76,9 @@ export default function Animals() {
             onChange={(e) => setSize(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
-            <option value="">Porte</option>
-            {SIZE_OPTIONS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
+            <option value="">{t('animals.filterSize')}</option>
+            {sizeCategories.map((s) => (
+              <option key={s.value} value={s.value}>{t(s.labelKey)}</option>
             ))}
           </select>
           {(species || size) && (
@@ -99,7 +86,7 @@ export default function Animals() {
               onClick={() => { setSpecies(''); setSize('') }}
               className="text-sm text-emerald-600 hover:underline px-3 py-2"
             >
-              Limpar filtros
+              {t('animals.clearFilters')}
             </button>
           )}
         </div>
@@ -108,9 +95,7 @@ export default function Animals() {
       {filtered.length === 0 ? (
         <EmptyAnimals
           subtitle={
-            animals.length === 0
-              ? undefined
-              : 'Tente ajustar os filtros para ver outros amigos.'
+            animals.length === 0 ? undefined : t('animals.adjustFilters')
           }
         />
       ) : (
@@ -136,7 +121,9 @@ export default function Animals() {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-500">{animal.species}</p>
+                <p className="text-sm text-gray-500">
+                  {t(speciesCategories.find((s) => s.value === animal.species)?.labelKey ?? 'species.outro')}
+                </p>
                 {animal.description && (
                   <p className="text-sm text-gray-600 mt-2 line-clamp-3">{animal.description}</p>
                 )}
@@ -145,7 +132,7 @@ export default function Animals() {
                     to={`/adocao/${buildAnimalSlug(animal.species, animal.name, animal.id)}`}
                     className="block w-full text-center bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-emerald-700"
                   >
-                    Tenho interesse
+                    {t('animals.interested')}
                   </Link>
                 </div>
               </div>

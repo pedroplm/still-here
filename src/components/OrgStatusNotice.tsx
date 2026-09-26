@@ -1,12 +1,15 @@
+import { useTranslation } from 'react-i18next'
 import type { Organization } from '@/types'
 
 const box = 'max-w-2xl mx-auto px-4 py-16 text-center'
 
 export default function OrgStatusNotice({ org, loading }: { org: Organization | null; loading: boolean }) {
+  const { t } = useTranslation()
+
   if (loading) {
     return (
       <div className={box}>
-        <p className="text-gray-400">Carregando...</p>
+        <p className="text-gray-400">{t('common.loading')}</p>
       </div>
     )
   }
@@ -14,8 +17,8 @@ export default function OrgStatusNotice({ org, loading }: { org: Organization | 
   if (!org) {
     return (
       <div className={box}>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Nenhuma ONG vinculada</h2>
-        <p className="text-gray-500">Esta conta ainda não tem uma ONG cadastrada.</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('orgNotice.noOrgTitle')}</h2>
+        <p className="text-gray-500">{t('orgNotice.noOrgBody')}</p>
       </div>
     )
   }
@@ -28,17 +31,15 @@ export default function OrgStatusNotice({ org, loading }: { org: Organization | 
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Cadastro não aprovado</h2>
-        <p className="text-gray-500 mb-4">A ONG {org.name} não foi aprovada pela curadoria.</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('orgNotice.rejectedTitle')}</h2>
+        <p className="text-gray-500 mb-4">{t('orgNotice.rejectedBody', { name: org.name })}</p>
         {org.rejectionReason && (
           <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm text-left mb-4">
-            <p className="font-medium mb-1">Motivo</p>
+            <p className="font-medium mb-1">{t('orgNotice.reasonLabel')}</p>
             <p>{org.rejectionReason}</p>
           </div>
         )}
-        <p className="text-sm text-gray-500">
-          Corrija os dados e fale com a gente pelo e-mail de contato para reenviar o pedido.
-        </p>
+        <p className="text-sm text-gray-500">{t('orgNotice.rejectedFooter')}</p>
       </div>
     )
   }
@@ -52,15 +53,11 @@ export default function OrgStatusNotice({ org, loading }: { org: Organization | 
             <circle cx="12" cy="12" r="9" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Cadastro em análise</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('orgNotice.pendingTitle')}</h2>
         <p className="text-gray-600 mb-4">
-          Recebemos o cadastro da <strong>{org.name}</strong> e ele está sendo verificado pela nossa
-          curadoria.
+          {t('orgNotice.pendingBody', { name: org.name })}
         </p>
-        <p className="text-sm text-gray-500">
-          A verificação leva até alguns dias. Assim que liberarmos, você recebe um e-mail e passa a
-          conseguir cadastrar animais aqui no painel.
-        </p>
+        <p className="text-sm text-gray-500">{t('orgNotice.pendingFooter')}</p>
       </div>
     )
   }

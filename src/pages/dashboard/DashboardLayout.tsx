@@ -1,25 +1,27 @@
+import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/hooks/useOrganization'
 import { isAdminUid } from '@/services/admin'
 import OrgStatusNotice from '@/components/OrgStatusNotice'
 
-const navItems = [
-  { to: '/dashboard', label: 'Visão geral', end: true },
-  { to: '/dashboard/animais', label: 'Animais' },
-  { to: '/dashboard/animais/novo', label: 'Novo animal' },
-  { to: '/dashboard/perfil', label: 'Perfil da ONG' },
-]
-
 export default function DashboardLayout() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const { org, loading } = useOrganization()
   const isAdmin = isAdminUid(user?.uid)
   const blocked = loading || !org || org.status !== 'approved'
 
+  const navItems = [
+    { to: '/dashboard', label: t('dashboard.nav.overview'), end: true },
+    { to: '/dashboard/animais', label: t('dashboard.nav.animals') },
+    { to: '/dashboard/animais/novo', label: t('dashboard.nav.newAnimal') },
+    { to: '/dashboard/perfil', label: t('dashboard.nav.profile') },
+  ]
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Dashboard</h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">{t('nav.dashboard')}</h1>
       {blocked ? (
         <div>
           <OrgStatusNotice org={org} loading={loading} />
@@ -29,7 +31,7 @@ export default function DashboardLayout() {
                 to="/admin/ongs"
                 className="inline-block bg-amber-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-600"
               >
-                Abrir painel de aprovação
+                {t('dashboard.openApprovalPanel')}
               </Link>
             </div>
           )}
@@ -59,7 +61,7 @@ export default function DashboardLayout() {
                   to="/admin/ongs"
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
                 >
-                  Aprovar ONGs
+                  {t('dashboard.approveNGOs')}
                 </Link>
               )}
             </nav>

@@ -5,59 +5,59 @@ export type AnimalStatus = 'available' | 'adoption_pending' | 'adopted'
 
 export interface SpeciesCategory {
   value: AnimalSpecies
-  label: string
+  labelKey: string
   icon: string
 }
 
 export interface SizeCategory {
   value: AnimalSize
-  label: string
-  description: string
+  labelKey: string
+  descriptionKey: string
 }
 
 export interface SexCategory {
   value: AnimalSex
-  label: string
+  labelKey: string
 }
 
 export interface StatusCategory {
   value: AnimalStatus
-  label: string
+  labelKey: string
   color: string
 }
 
-export const speciesCategories: SpeciesCategory[] = [
-  { value: 'cachorro', label: 'Cachorro', icon: '🐕' },
-  { value: 'gato', label: 'Gato', icon: '🐈' },
-  { value: 'ave', label: 'Ave', icon: '🦜' },
-  { value: 'roedor', label: 'Roedor', icon: '🐹' },
-  { value: 'outro', label: 'Outro', icon: '🐾' },
-]
+export const speciesCategories = [
+  { value: 'cachorro', labelKey: 'species.cachorro', icon: '🐕' },
+  { value: 'gato', labelKey: 'species.gato', icon: '🐈' },
+  { value: 'ave', labelKey: 'species.ave', icon: '🦜' },
+  { value: 'roedor', labelKey: 'species.roedor', icon: '🐹' },
+  { value: 'outro', labelKey: 'species.outro', icon: '🐾' },
+] as const satisfies readonly SpeciesCategory[]
 
-export const sizeCategories: SizeCategory[] = [
-  { value: 'pequeno', label: 'Pequeno', description: 'Até 10 kg' },
-  { value: 'medio', label: 'Médio', description: '10 a 25 kg' },
-  { value: 'grande', label: 'Grande', description: 'Acima de 25 kg' },
-]
+export const sizeCategories = [
+  { value: 'pequeno', labelKey: 'size.pequeno', descriptionKey: 'size.pequenoDesc' },
+  { value: 'medio', labelKey: 'size.medio', descriptionKey: 'size.medioDesc' },
+  { value: 'grande', labelKey: 'size.grande', descriptionKey: 'size.grandeDesc' },
+] as const satisfies readonly SizeCategory[]
 
-export const sexCategories: SexCategory[] = [
-  { value: 'macho', label: 'Macho' },
-  { value: 'femea', label: 'Fêmea' },
-  { value: 'indefinido', label: 'Indefinido' },
-]
+export const sexCategories = [
+  { value: 'macho', labelKey: 'sex.macho' },
+  { value: 'femea', labelKey: 'sex.femea' },
+  { value: 'indefinido', labelKey: 'sex.indefinido' },
+] as const satisfies readonly SexCategory[]
 
-export const statusCategories: StatusCategory[] = [
-  { value: 'available', label: 'Disponível', color: 'emerald' },
-  { value: 'adoption_pending', label: 'Adoção em andamento', color: 'amber' },
-  { value: 'adopted', label: 'Adotado', color: 'gray' },
-]
+export const statusCategories = [
+  { value: 'available', labelKey: 'status.available', color: 'emerald' },
+  { value: 'adoption_pending', labelKey: 'status.adoptionPending', color: 'amber' },
+  { value: 'adopted', labelKey: 'status.adopted', color: 'gray' },
+] as const satisfies readonly StatusCategory[]
 
 export const ageOptions = [
-  'Filhote',
-  'Jovem',
-  'Adulto',
-  'Idoso',
-]
+  { value: 'Filhote', labelKey: 'age.puppy' },
+  { value: 'Jovem', labelKey: 'age.young' },
+  { value: 'Adulto', labelKey: 'age.adult' },
+  { value: 'Idoso', labelKey: 'age.senior' },
+] as const
 
 export const brazilianStates = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',

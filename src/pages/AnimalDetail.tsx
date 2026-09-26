@@ -1,37 +1,32 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { FaWhatsapp, FaGlobe } from 'react-icons/fa6'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { getAnimal, getOrganization } from '@/services/database.service'
 import type { Animal, Organization } from '@/types'
 import { extractIdFromSlug } from '@/utils/slug'
+import { sexCategories, sizeCategories, speciesCategories, ageOptions } from '@/data/categories'
 
 function normalizePhone(phone: string) {
   return phone.replace(/[^\d]/g, '')
 }
 
-function buildWhatsAppUrl(phone: string, animalName: string, orgName: string) {
-  const digits = normalizePhone(phone)
-  const message = encodeURIComponent(
-    `Olá! Tenho interesse em adotar o ${animalName} da ${orgName}. Pode me passar mais informações?`,
-  )
-  return `https://wa.me/${digits}?text=${message}`
-}
-
 export default function AnimalDetail() {
+  const { t } = useTranslation()
   const { slug } = useParams<{ slug: string }>()
   const id = slug ? extractIdFromSlug(slug) : undefined
   const [animal, setAnimal] = useState<Animal | null>(null)
   const [org, setOrg] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<'notFound' | 'loadError' | null>(null)
 
   useEffect(() => {
     if (!id) return
     getAnimal(id)
       .then(async (data) => {
         if (!data) {
-          setError('Animal não encontrado.')
+          setError('notFound')
           return
         }
         setAnimal(data)
@@ -39,28 +34,49 @@ export default function AnimalDetail() {
           setOrg(await getOrganization(data.organizationId))
         }
       })
-      .catch(() => setError('Erro ao carregar o animal. Tente novamente.'))
+      .catch(() => setError('loadError'))
       .finally(() => setLoading(false))
   }, [id])
 
+  function buildWhatsAppUrl(phone: string, animalName: string, orgName: string) {
+    const digits = normalizePhone(phone)
+    const message = encodeURIComponent(
+      t('animalDetail.whatsappMessage', { animalName, orgName }),
+    )
+    return `https://wa.me/${digits}?text=${message}`
+  }
+
+  const speciesLabel = animal
+    ? t(speciesCategories.find((s) => s.value === animal.species)?.labelKey ?? 'species.outro')
+    : ''
+
+  const knownAge = animal ? ageOptions.find((a) => a.value === animal.age) : undefined
+  const ageLabel = knownAge ? t(knownAge.labelKey) : (animal?.age ?? '')
+
   usePageMeta(
-    animal ? `Adote ${animal.name} · Still Here` : 'Animal · Still Here',
+    animal ? t('animalDetail.metaTitle', { name: animal.name }) : t('animalDetail.metaTitleFallback'),
     animal?.description
-      ? `${animal.name} — ${animal.species} disponível para adoção. ${animal.description}`
+      ? t('animalDetail.metaDescription', {
+          name: animal.name,
+          species: speciesLabel,
+          description: animal.description,
+        })
       : undefined,
     animal?.imageUrl ?? undefined,
   )
 
   if (loading) {
-    return <div className="text-gray-400 text-center py-20">Carregando...</div>
+    return <div className="text-gray-400 text-center py-20">{t('common.loading')}</div>
   }
 
   if (error || !animal) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-500 mb-4">{error || 'Animal não encontrado.'}</p>
+        <p className="text-gray-500 mb-4">
+          {error === 'loadError' ? t('animalDetail.loadError') : t('animalDetail.notFound')}
+        </p>
         <Link to="/animais" className="text-emerald-600 hover:underline">
-          Ver todos os animais
+          {t('animalDetail.seeAll')}
         </Link>
       </div>
     )
@@ -80,7 +96,7 @@ export default function AnimalDetail() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <Link to="/animais" className="text-sm text-emerald-600 hover:underline">
-        ← Voltar para animais
+        ← {t('animalDetail.back')}
       </Link>
 
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -103,10 +119,10 @@ export default function AnimalDetail() {
               }`}
             >
               {animal.status === 'available' || animal.status === undefined
-                ? 'Disponível'
+                ? t('status.available')
                 : animal.status === 'adoption_pending'
-                  ? 'Adoção em andamento'
-                  : 'Adotado'}
+                  ? t('status.adoptionPending')
+                  : t('status.adopted')}
             </span>
           </div>
 
@@ -118,12 +134,12 @@ export default function AnimalDetail() {
           )}
 
           <div className="flex flex-wrap gap-2 mb-4">
-            <span className="text-sm bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full capitalize">
-              {animal.species}
+            <span className="text-sm bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">
+              {speciesLabel}
             </span>
             {animal.sex && (
-              <span className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full capitalize">
-                {animal.sex}
+              <span className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
+                {t(sexCategories.find((s) => s.value === animal.sex)?.labelKey ?? 'sex.indefinido')}
               </span>
             )}
             {animal.breed && (
@@ -131,11 +147,11 @@ export default function AnimalDetail() {
                 {animal.breed}
               </span>
             )}
-            <span className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full capitalize">
-              {animal.size}
+            <span className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
+              {t(sizeCategories.find((s) => s.value === animal.size)?.labelKey ?? 'size.medio')}
             </span>
             <span className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
-              {animal.age}
+              {ageLabel}
             </span>
           </div>
 
@@ -156,14 +172,14 @@ export default function AnimalDetail() {
                 isWhatsApp && <FaWhatsapp className="text-xl" />
               )}
               {org?.website
-                ? 'Tenho interesse em adotar'
+                ? t('animalDetail.interestedAdopt')
                 : isWhatsApp
-                  ? 'Tenho interesse no WhatsApp'
-                  : 'Tenho interesse em adotar'}
+                  ? t('animalDetail.interestedWhatsapp')
+                  : t('animalDetail.interestedAdopt')}
             </a>
           ) : (
             <div className="mt-auto text-sm text-gray-500 text-center">
-              Entre em contato com a ONG para adotar o {animal.name}.
+              {t('animalDetail.contactOrg', { name: animal.name })}
             </div>
           )}
         </div>

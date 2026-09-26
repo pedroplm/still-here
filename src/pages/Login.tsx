@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
 import { login } from '@/services/auth.service'
 
 export default function Login() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -16,9 +18,8 @@ export default function Login() {
     try {
       await login(email, password)
       navigate('/dashboard')
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao fazer login'
-      setError(msg)
+    } catch {
+      setError(t('login.error'))
     } finally {
       setLoading(false)
     }
@@ -26,13 +27,13 @@ export default function Login() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-20">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Entrar</h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">{t('nav.login')}</h1>
       {error && (
         <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.email')}</label>
           <input
             type="email"
             required
@@ -43,7 +44,7 @@ export default function Login() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.password')}</label>
           <input
             type="password"
             required
@@ -58,12 +59,12 @@ export default function Login() {
           disabled={loading}
           className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50"
         >
-          {loading ? 'Entrando...' : 'Entrar'}
+          {loading ? t('login.signingIn') : t('nav.login')}
         </button>
       </form>
       <p className="text-sm text-gray-500 text-center mt-6">
-        Não tem conta?{' '}
-        <Link to="/registrar" className="text-emerald-600 hover:underline">Cadastre sua ONG</Link>
+        {t('login.noAccount')}{' '}
+        <Link to="/registrar" className="text-emerald-600 hover:underline">{t('login.registerCta')}</Link>
       </p>
     </div>
   )

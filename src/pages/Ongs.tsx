@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { getOrganizations } from '@/services/database.service'
 import type { Organization } from '@/types'
 import { usePageMeta } from '@/hooks/usePageMeta'
 
 export default function Ongs() {
-  usePageMeta(
-    'ONGs parceiras · Still Here',
-    'Conheça as ONGs de proteção animal parceiras da Still Here.',
-  )
+  const { t } = useTranslation()
+  usePageMeta(t('ongs.meta.title'), t('ongs.meta.description'))
   const [ongs, setOngs] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -19,30 +18,28 @@ export default function Ongs() {
   }, [])
 
   if (loading) {
-    return <div className="text-gray-400 text-center py-20">Carregando...</div>
+    return <div className="text-gray-400 text-center py-20">{t('common.loading')}</div>
   }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">ONGs parceiras</h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">{t('ongs.h1')}</h1>
 
       <div className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-6 md:p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold">Sua ONG também pode estar aqui</h2>
-          <p className="text-emerald-50 mt-1">
-            Cadastre sua ONG aqui e ajude ainda mais nossos amigos encontrarem uma nova família.
-          </p>
+          <h2 className="text-xl md:text-2xl font-bold">{t('ongs.cta.title')}</h2>
+          <p className="text-emerald-50 mt-1">{t('ongs.cta.subtitle')}</p>
         </div>
         <Link
           to="/registrar"
           className="shrink-0 bg-white text-emerald-600 font-semibold px-5 py-3 rounded-lg hover:bg-emerald-50 transition-colors"
         >
-          Cadastrar minha ONG
+          {t('ongs.cta.button')}
         </Link>
       </div>
 
       {ongs.length === 0 ? (
-        <p className="text-gray-500">Nenhuma ONG cadastrada ainda.</p>
+        <p className="text-gray-500">{t('ongs.empty')}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {ongs.map((ong) => (
