@@ -1,7 +1,7 @@
 # Handoff — Still Here
 
-Documento de continuidade. Escrevi para uma sessão **sem histórico de conversa** conseguir retomar o
-trabalho com segurança. Atualizado em 2026-09-26.
+Documento de continuidade, escrito para uma sessão **sem histórico de conversa** retomar o trabalho
+com segurança. Atualizado em 2026-09-26 (revisão pós-deploy de segurança).
 
 Leia inteiro antes de mexer em qualquer coisa.
 
@@ -17,7 +17,19 @@ Leia inteiro antes de mexer em qualquer coisa.
 | Registrador | registro.br, DNS nos servidores próprios (`a/b.auto.dns.br`) — **DNSSEC é automático e obrigatório lá** |
 | Deploy | GitHub Pages via `.github/workflows/deploy.yml` |
 | Backend | nenhum. Firebase Auth + Firestore + Cloudinary, tudo client-side |
-| Ambiente com `.env` | **máquina do Pedri** — a máquina atual não tem `.env`, então não dá para buildar/testar Firebase local aqui |
+| Firebase project | `still-here-9572a` |
+
+### Contas
+
+| Papel | E-mail | UID | Estado |
+|---|---|---|---|
+| Curador (admin) | `pedropalomo.ti@gmail.com` | `kimc5Hp2OpT4TsFyX15O8DQ5kBl2` | e-mail verificado |
+| Dono da ONG demo | `teste@teste.com` | `dcJk9OXJAbUWKiDyL88OxWTrqOa2` | e-mail verificado |
+
+A senha do admin foi gerada por script e está em
+`%TEMP%\opencode\adminpw.txt` (fora do repo). **Rotacionar.** A senha de
+`teste@teste.com` foi sobrescrita por valores aleatórios durante os testes de
+regras — se precisar, resetar pelo Firebase Console.
 
 ### Comandos
 
@@ -26,14 +38,13 @@ npm run dev       # Vite em http://localhost:5173
 npm run build     # tsc -b && vite build
 npm run lint      # oxlint (deve sair com 0 warning)
 
-npm i -g firebase-tools   # só na máquina do Pedri, se não tiver
 firebase login
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:rules,firestore:indexes --project still-here-9572a
 ```
 
 ---
 
-## 2. Estado atual: o que está pronto
+## 2. Estado atual
 
 ### Deploy e domínio
 
@@ -43,27 +54,23 @@ firebase deploy --only firestore:rules
 - Efeito colateral importante: **com o CNAME presente, `pedroplm.github.io/still-here` responde
   301 para `stillhere.com.br`**. Verificado. Ou seja, não dá para ter os dois no ar ao mesmo tempo.
 - `public/404.html` redireciona o fallback da SPA para `/` (estava fixo em `/still-here/`).
-- Deploy precisa de `VITE_ADMIN_UID` nos secrets do GitHub (ver seção 4).
 
 ### SEO
 
 - `public/og-default.png` — 1200×630, gerado a partir do `og-default.svg` existente.
-  Foi feito com `sharp` instalado temporariamente e removido; `package-lock.json` ficou intacto.
-  **O SVG continua no repo** e o PNG é o que o código referencia.
+  Feito com `sharp` instalado temporariamente e removido; `package-lock.json` ficou intacto.
 - `src/hooks/usePageMeta.ts` — `SITE_URL` fixo `https://stillhere.com.br`, canonical e `og:url`
-  montados de `SITE_URL + pathname` (ignoram query string e nunca apontam pro `github.io`).
-  Helper `absoluteUrl()` para imagem relativa virar absoluta.
+  montados de `SITE_URL + pathname`.
 - `index.html` — tags OG/canonical estáticas para crawler que não executa JS.
 - `public/robots.txt` — bloqueia `/dashboard`, `/login`, `/registrar`, aponta pro sitemap.
-- `public/sitemap.xml` — 7 rotas públicas. Rotas dinâmicas (`/adocao/:slug`, `/ongs/:id`) ficaram
-  de fora de propósito: vêm do Firestore e mudam com o tempo.
+- `public/sitemap.xml` — 7 rotas públicas.
 
-### Aprovação de ONGs (feature nova, commit `e1717d2`)
+### Aprovação de ONGs (feature `e1717d2` + revisão de segurança)
 
-Fluxo: alguém se cadastra → org nasce com `status: 'pending'` → vê tela "Cadastro em análise" no
-lugar do dashboard → o admin aprova/rejeita em `/admin/ongs`.
+Fluxo: cadastro → org nasce `pending` → tela "Cadastro em análise" no lugar do
+dashboard → curador aprova/rejeita em `/admin/ongs`.
 
-Arquivos novos:
+Arquivos da feature:
 
 | Arquivo | Papel |
 |---|---|
@@ -74,39 +81,104 @@ Arquivos novos:
 | `src/hooks/useOrganization.ts` | carrega a org do usuário logado |
 | `src/pages/AdminOrganizations.tsx` | painel de curadoria |
 
-Modificados: `src/types/index.ts` (`OrgStatus`), `src/services/database.service.ts`
-(`isPublicOrg`, `getOrganizationsByStatus`, `setOrganizationStatus`, `status` no create),
-`src/hooks/useOrgId.ts`, `src/pages/dashboard/DashboardLayout.tsx`, `src/App.tsx` (rota
-`/admin/ongs`), `src/components/Navbar.tsx` (link "Admin"), `src/pages/Register.tsx`,
-`src/data/demo-orgs.ts`, `.env.example`, `deploy.yml`, `firestore.rules`.
-
 Detalhes que importam:
 
-- **`getOrganizations()` filtra no cliente, não por query.** Filtra `status !== 'pending' && !==
-  'rejected'`. Fiz assim de propósito: `where('status','==','approved')` excluiria documento sem o
-  campo, e a ONG já cadastrada (que ainda não tem `status`) sumiria do site. Assim ela continua
-  visível sem migração.
-- **A ONG existente não tem `status`.** Continua funcionando. Se for aprovada no painel, ganha o campo.
-- **Limite de tentativas é client-side.** Segura erro de clique e re-tentativa apressada. Um bot
-  apaga a chave do `localStorage` e ignora. Não é proteção real — ver item 5.4.
-- **CNPJ became obrigatório** e é consultado no BrasilAPI (`https://brasilapi.com.br/api/cnpj/v1/{cnpj}`).
-  Se a API responde "não existe" ou situação ≠ `ATIVA`, barra o cadastro. Se a API está fora do ar,
-  **não bloqueia** — não queremos prender o cadastro a terceiro. No painel admin aparece a razão
-  social da Receita, para comparar com o nome digitado.
-
-### Commits de 2026-09-26
-
-```
-64dfe43  feat: serve stillhere.com.br at root
-39e0612  feat: add SEO metadata, og image and sitemap
-e1717d2  feat: gate NGO registration behind admin approval
-```
+- **`getOrganizations()` filtra por query agora** (`where('status','==','approved')`), não no
+  cliente. A ONG que já existia sem `status` foi corrigida: recebeu `status: 'approved'` por
+  script. Não existe mais documento sem `status`.
+- **Limite de tentativas é client-side.** Um bot apaga a chave do `localStorage` e ignora. Não é
+  proteção real — ver item 5.4 do handoff antigo, hoje App Check.
+- **CNPJ é obrigatório** e é consultado no BrasilAPI
+  (`https://brasilapi.com.br/api/cnpj/v1/{cnpj}`). Se a API responde "não existe" ou situação
+  ≠ `ATIVA`, barra o cadastro. Se a API está fora do ar, **não bloqueia**.
 
 ---
 
-## 3. Pendências bloqueantes (precisa do Pedri)
+## 3. Segurança — o que já foi fechado
 
-### 3.1 DNS — o dominio ainda NÃO está no ar
+O objetivo era que ONG falsa não consiga operar na plataforma. As regras foram
+reescritas, publicadas e **validadas com 49 casos contra o Firestore real**
+(anônimo, dono, ONG em análise, curador) — 49/49 passaram.
+
+### 3.1 Regras de `organizations`
+
+- List pública só é provável com `status == 'approved'`. Sem filtro, a query é negada
+  (403) — é o comportamento correto, não bug.
+- `get` de pending/rejected é negado ao público; o dono e o admin continuam lendo.
+- `create` exige `userId` próprio, `organizationId == docId`, `status == 'pending'` e
+  `hasAll(['userId','name','cnpj','city','state'])`.
+- `update`: `userId`, `cnpj` e `organizationId` são imutáveis para qualquer um. O dono só
+  mexe na lista `orgProfileFields()` (`status` e `reviewedAt` ficam de fora — se entrassem,
+  a ONG se aprovaria sozinha). O admin é livre dentro dessas três imutabilidades.
+- `delete`: **só admin**. A trava de CNPJ é create-only, então apagar a ONG pelo dono
+  deixaria o CNPJ reservado para sempre.
+
+### 3.2 Regras de `animals`
+
+- `create` exige `isEmailVerified()` + dono da ONG + **ONG aprovada** + `ownerUid` próprio.
+- `update` exige o mesmo (admin passa direto). Sem isso, ONG rejeitada continuava
+  republicando animais na home só de manter a sessão aberta.
+- `organizationId` e `ownerUid` imutáveis no update.
+- `ownerUid` é denormalizado: é o que permite ao painel listar "meus animais" com uma
+  query que a regra consegue provar. Em `list`, a query falha inteira se a regra não for
+  provável pelas constraints — por isso toda query pública filtra por
+  `status`/`available`/`ownerUid`.
+
+### 3.3 CNPJ único
+
+`createOrganization` grava, num único `writeBatch`, a org + a trava
+`cnpj/{14 dígitos}` com `{ organizationId, createdAt }`. A trava é create-only e
+`allow read: if false` — CNPJ de terceiro não é enumerável. Duplicar dá 409.
+
+### 3.4 E-mail verificado
+
+- `register()` dispara `sendEmailVerification`.
+- `ProtectedRoute` barra tudo que não for e-mail verificado, com reenvio e logout.
+- `resendVerification(user)` e `requestPasswordReset(email)` em `auth.service.ts`.
+- **Decisão:** a verificação **não** é exigida no `create` de `organizations`. Se fosse, o
+  cadastro em duas etapas deixaria org órfã (criada antes do clique no e-mail). A barreira
+  fica no `ProtectedRoute` e no `create` de `animals`. Efeito colateral aceito: usuário não
+  verificado ainda consegue reservar CNPJ — o App Check é o que fecha isso.
+
+### 3.5 Curadoria
+
+`AdminOrganizations` aprova e rejeita com motivo. Rejeitar também chama
+`hideOrganizationAnimals(organizationId)`, que põe `available: false` nos animais da ONG
+(batch de 400). Sem isso, os animais já publicados continuariam na home depois da
+rejeição. **Rejeitar sempre pelo painel**, não por script — a regra impede o dono de
+republicar, mas não despublica o que já está no ar.
+
+### 3.6 App Check (código pronto, falta ativar)
+
+`src/services/firebase.config.ts` inicializa reCAPTCHA v3 **só** se
+`VITE_RECAPTCHA_SITE_KEY` estiver preenchida. Vazio, não inicializa — dá para testar
+antes de obrigar.
+
+### 3.7 Armadilhas do Firestore já mordidas
+
+Nenhuma dessas é óbvia; todas custaram tempo:
+
+- **`undefined` rejeita o documento inteiro.** `updateDoc` com `{ foo: undefined }` falha.
+  Todo write passa por `compact()`.
+- **`DocProfile`/formulário não podem mandar `id` nem `status`.** A regra é estrita
+  (`hasOnly`/`hasAll`); mandar campo a mais derruba a escrita. `OrgProfile` monta o
+  payload na mão.
+- **Query não provável = query negada.** Não dá para usar `get()` de outro documento em
+  regra de `list`; tem que repetir a constraint.
+- **`updateMask.fieldPaths` no REST é repetido**, não lista separada por vírgula:
+  `?updateMask.fieldPaths=a&updateMask.fieldPaths=b`.
+- **Token OAuth do Firebase CLI ignora as rules.** Ao testar por REST, um DELETE com o
+  token do CLI passa mesmo com `allow delete: if false`. Para testar negação, use o
+  **idToken** do usuário.
+
+O harness usado para a validação ficou em `%TEMP%\opencode\verify-rules.ps1`
+(fora do repo) e monta org fake, aprova/rejeita e mede 49 casos.
+
+---
+
+## 4. Pendências bloqueantes (precisa do Pedri)
+
+### 4.1 DNS — o domínio ainda NÃO está no ar
 
 Na última verificação, os servidores autoritativos devolviam zona vazia para o apex e NXDOMAIN
 para `www`. Motivo provável: a transição de 2h do registro.br (remoção da chave DNSSEC antiga) não
@@ -128,31 +200,23 @@ nslookup stillhere.com.br          # esperado: 185.199.108/109/110/111.153
 nslookup www.stillhere.com.br      # esperado: pedroplm.github.io
 ```
 
-### 3.2 Preencher o UID do admin em 2 lugares
+### 4.2 Secret `VITE_ADMIN_UID` no GitHub
 
-1. `firestore.rules:11` — trocar o placeholder:
-   ```
-   return isAuth() && request.auth.uid == 'COLE_AQUI_O_UID_DO_ADMIN';
-   ```
-2. Secret `VITE_ADMIN_UID` no GitHub (Settings → Secrets and variables → Actions), mesmo valor.
-   Sem isso o build sai sem admin e o link "Admin" nunca aparece.
+Settings → Secrets and variables → Actions → `VITE_ADMIN_UID` = `kimc5Hp2OpT4TsFyX15O8DQ5kBl2`.
+O `gh` CLI não está instalado nesta máquina, então não dá para criar por script.
+O UID **já** está no `.env` local e em `firestore.rules` — só o secret falta. Sem ele o build
+passa, mas o link "Admin" nunca aparece.
 
-UID em Firebase Console → Authentication → clicar no e-mail do admin.
+### 4.3 App Check
 
-### 3.3 Deploy das regras — nunca foi feito
-
-`firestore.rules` no repo **nunca foi publicado**. O pipeline de deploy só faz build e sobe o Pages;
-as regras são deployadas à parte. Enquanto não rodar `firebase deploy --only firestore:rules`, o botão
-"Aprovar" vai falhar com erro de permissão — é o comportamento esperado, não um bug.
-
-### 3.4 Liberação no Firebase Auth
-
-`stillhere.com.br` e `www.stillhere.com.br` em Authentication → Settings → **Authorized domains**.
-Sem isso o login quebra em produção no domínio novo.
+1. Firebase Console → App Check → registrar chave reCAPTCHA v3.
+2. `VITE_RECAPTCHA_SITE_KEY` no `.env` e no secret do GitHub.
+3. Testar em produção/staging **antes** de registrar o app.
+4. Registrar o app e aplicar enforcement.
 
 ---
 
-## 4. Secrets do GitHub Actions
+## 5. Secrets do GitHub Actions
 
 Todos em `.github/workflows/deploy.yml`, block `env:` do passo de build.
 
@@ -165,170 +229,42 @@ VITE_FIREBASE_MESSAGING_SENDER_ID
 VITE_FIREBASE_APP_ID
 VITE_CLOUDINARY_CLOUD_NAME
 VITE_CLOUDINARY_UPLOAD_PRESET
-VITE_ADMIN_UID          # novo
+VITE_ADMIN_UID
+VITE_RECAPTCHA_SITE_KEY
 ```
 
 Config do Firebase é pública por design; o que **nunca** entra no repo é service account / private key.
 
----
-
-## 5. Segurança — o que falta, em ordem de prioridade
-
-Contexto: o objetivo é que ONG falsa não consiga operar na plataforma. O commit `e1717d2` resolve a
-experiência de UI, mas **não** fecha o buraco no servidor. Nada aqui foi implementado ainda.
-
-### 5.1 Fechar as regras — FAZER PRIMEIRO
-
-Hoje `organizations` tem `allow read: if true` e `animals` libera leitura com `available == true`.
-Efeito: ONG rejeitada some do site, mas **continua legível pela API e ainda cria animais, que
-aparecem na home**. A aprovação hoje só é de fachada.
-
-Proposta (substitui as functions helpers de `firestore.rules`):
-
-```javascript
-function isAdmin() {
-  return isAuth() && request.auth.uid == 'COLE_AQUI_O_UID_DO_ADMIN';
-}
-
-function orgData(orgId) {
-  return get(/databases/$(database)/documents/organizations/$(orgId)).data;
-}
-
-function isOrgOwner(orgId) {
-  return isAuth() && orgData(orgId).userId == request.auth.uid;
-}
-
-function isOrgPublic(orgId) {
-  return !('status' in orgData(orgId)) || orgData(orgId).status == 'approved';
-}
-
-function canReadOrg(orgId) {
-  return isOrgOwner(orgId) || isAdmin() || isOrgPublic(orgId);
-}
-
-function isEmailVerified() {
-  return request.auth.token.email_verified == true;
-}
-```
-
-Coleções:
-
-```javascript
-match /organizations/{orgId} {
-  allow read: if canReadOrg(orgId);
-  allow create: if isAuth()
-    && isEmailVerified()
-    && request.resource.data.userId == request.auth.uid
-    && request.resource.data.status == 'pending'
-    && request.resource.data.keys().hasAll(['userId', 'name', 'cnpj', 'city', 'state']);
-  allow update: if (isOrgOwner(orgId) || isAdmin())
-    && request.resource.data.userId == resource.data.userId;
-  allow delete: if isOrgOwner(orgId);
-}
-
-match /animals/{animalId} {
-  allow read: if isOrgPublic(resource.data.organizationId)
-    || (isAuth() && isOrgOwner(resource.data.organizationId));
-  allow create: if isCreateAnimalOrgOwner()
-    && request.resource.data.keys().hasAll(['organizationId', 'name', 'species', 'available']);
-  allow update: if isAnimalOrgOwner();
-  allow delete: if isAnimalOrgOwner();
-}
-```
-
-`isOrgPublic` tolera documento sem `status` de propósito — é o que mantém a ONG já cadastrada
-visível. Depois que ela for aprovada no painel, dá para simplificar para `orgData(orgId).status ==
-'approved'`.
-
-`cnpj` entrou no `hasAll` porque agora é obrigatório no formulário. Se isso atrapalhar o teste local,
-remover.
-
-### 5.2 Verificação de e-mail — 3 linhas, maior retorno
-
-Hoje qualquer um cria conta com e-mail descartável e ela fica para sempre.
-
-- `src/services/auth.service.ts` → `register()`: adicionar `await sendEmailVerification(credential.user)`
-  logo depois de `createUserWithEmailAndPassword`.
-- `src/pages/Login.tsx`: se `!user.emailVerified`, mostrar "verifique seu e-mail" e não seguir para
-  o dashboard.
-- `firestore.rules`: `isEmailVerified()` no `create` de `organizations`.
-
-### 5.3 CNPJ único — fecha o buraco da própria verificação
-
-Hoje a checagem do CNPJ não impede nada: o mesmo CNPJ pode ser cadastrado N vezes. Alguém pega o CNPJ
-de uma ONG real, cadastra 30 vezes e espera uma aprovação. Como o CNPJ virou o alicerce da confiança,
-ele precisa ser único.
-
-Implementação:
-
-- coleção nova `cnpj/{só dígitos}` com `{ organizationId, createdAt }`
-- `createOrganization` em `database.service.ts` passa a `writeBatch` (org + cnpj) para ser atômico
-- regras:
-  ```javascript
-  match /cnpj/{cnpjId} {
-    allow read: if false;
-    allow create: if isAuth()
-      && isEmailVerified()
-      && !exists(/databases/$(database)/documents/cnpj/$(cnpjId));
-    allow update: if false;
-    allow delete: if false;
-  }
-  ```
-- o erro "CNPJ já cadastrado" precisa virar mensagem amigável no `Register.tsx` (código
-  `already-exists`)
-
-Risco residual, aceito: quem cadastrar primeiro "reserva" o CNPJ de outra pessoa. Dano baixo,
-porque a aprovação é manual e o admin vê a razão social da Receita.
-
-Dado sensível: `cnpj` guarda CNPJ de terceiros com leitura bloqueada. Mesmo nível de exposição da
-coleção de ONGs, ou seja, alto.
-
-### 5.4 App Check com reCAPTCHA v3 — recomendo
-
-Faz o Firebase recusar qualquer requisição que não venha de um navegador real rodando o app. Mata
-`curl`, script e bot de preenchimento no projeto inteiro, não só no cadastro. Mais forte que limite
-por IP, porque não depende de contar tentativas.
-
-Setup: Firebase Console → App Check → registrar app Web → provedor reCAPTCHA v3 → copiar a site key
-→ passar como `VITE_RECAPTCHA_SITE_KEY` e inicializar `initializeAppCheck` em `firebase.config.ts`.
-Leva uns 30 min de console.
-
-### 5.5 Cloud Function para limite por IP — só se ver abuso real
-
-É a resposta correta para "3 tentativas por IP", e a reason de eu ter entregado o `localStorage`: SPA
-não conhece o IP de ninguém, o Firebase client SDK também não expõe. Precisa de backend que veja a
-requisição. Custo: plano Blaze + função para manter. **Deixar para depois** — o App Check já elimina
-o cenário que motiva isso.
+Os domínios `stillhere.com.br` e `www.stillhere.com.br` já estão em Authentication → Settings →
+**Authorized domains**, junto de `localhost`, `*.firebaseapp.com` e `*.web.app`.
 
 ---
 
 ## 6. Riscos e pendências conhecidos
 
-- **Aprovação é cosmética até as rules do 5.1.** Até lá, é só filtro de UI.
+- **Rejeitar por script deixa animal no ar.** As regras impedem republicar, mas não escondem o
+  que já foi publicado. Sempre rejeitar pelo painel.
+- **Cadastro de ONG não exige e-mail verificado** (ver 3.4). Sem App Check ativo, um bot
+  consegue criar org e reservar CNPJ. Dano baixo porque a aprovação é manual.
+- **Limite de tentativas é contornável** (`localStorage`). App Check resolve.
 - **`pedroplm.github.io/still-here` está fora do ar** (301 para o domínio). Intencional.
-- **Limite de tentativas é contornável.** Ver 5.5.
-- **A ONG existente não tem `status`.** Funcional, mas inconsistente com o schema novo.
-- **`README.md` está desatualizado**: fala em Netlify/Vercel como deploy e tem uma lista de rotas
-  antiga. O deploy real é GitHub Pages e a rota `/adocao/:slug` substituiu `/animais/:id`.
-- **`tasks.md`** — item de `sitemap.xml`/`robots.txt` ainda marcado como pendente; já foi feito
-  (commit `39e0612`).
+- **Nenhuma verificação de CNPJ foi feita contra um CNPJ real de ONG** — o fluxo foi implementado
+  e buildado, mas não testado com a API da Receita respondendo. Testar com um CNPJ válido e um
+  inválido antes de considerar fechado.
 - **Divergência de npm:** o `package-lock.json` foi gerado por um npm mais novo que o da máquina
   atual. Rodar `npm i` aqui remove campos `libc` e adiciona `@emnapi/runtime`. Se rodar
   `npm uninstall sharp` por engano, **reverter o lockfile** com `git checkout -- package-lock.json`
   em vez de commitar a diferença.
-- **Nenhuma verificação de CNPJ foi feita contra um CNPJ real de ONG** — o fluxo foi implementado
-  e buildado, mas não testado com a API da Receita respondendo. Testar com um CNPJ válido e com um
-  inválido antes de considerar fechado.
+- **Limite de Cloud Function por IP** (5.5 do handoff antigo) só se ver abuso real. Custo Blaze.
 
 ---
 
 ## 7. Checklist da próxima sessão
 
-1. Rodar `nslookup stillhere.com.br` e `nslookup www.stillhere.com.br`. O domínio já subiu?
+1. `nslookup stillhere.com.br` e `nslookup www.stillhere.com.br`. O domínio já subiu?
 2. Se sim: salvar o custom domain no GitHub Pages, conferir HTTPS, adicionar o CNAME de `www` se faltar.
-3. Preencher `isAdmin()` em `firestore.rules` e criar o secret `VITE_ADMIN_UID`.
-4. `firebase deploy --only firestore:rules` e testar aprovar uma ONG de teste.
-5. Implementar 5.1 → 5.2 → 5.3, na ordem. Um deploy de rules no fim.
-6. Testar o CNPJ com um número válido e um inválido.
-7. Avaliar 5.4 (App Check).
-8. Atualizar `README.md` para GitHub Pages e corrigir `tasks.md`.
+3. Criar o secret `VITE_ADMIN_UID` no GitHub.
+4. Ativar App Check: chave reCAPTCHA v3 → `.env` + secret → testar → enforcement.
+5. Testar cadastro com CNPJ real válido e com um inválido.
+6. Testar o fluxo de aprovação ponta a ponta no navegador (registrar → ver "em análise" → aprovar em `/admin/ongs`).
+7. Rotacionar a senha do admin.

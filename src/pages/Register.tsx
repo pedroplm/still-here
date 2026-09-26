@@ -18,6 +18,23 @@ function formatWait(ms: number) {
   return `${min}min ${String(sec).padStart(2, '0')}s`
 }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  'auth/email-already-in-use': 'Esse e-mail já tem conta. Tente entrar.',
+  'auth/weak-password': 'Senha muito fraca. Use pelo menos 6 caracteres.',
+  'auth/too-many-requests': 'Muitas tentativas. Espere alguns minutos e tente de novo.',
+  'auth/operation-not-allowed': 'Cadastro temporariamente indisponível. Fale com a gente pelo e-mail de contato.',
+  'already-exists':
+    'Esse CNPJ já tem cadastro aqui. Se foi você, entre com o e-mail e a senha que você criou.',
+}
+
+function friendlyError(err: unknown, fallback: string) {
+  if (typeof err === 'object' && err !== null && 'code' in err) {
+    const code = (err as { code?: unknown }).code
+    if (typeof code === 'string' && ERROR_MESSAGES[code]) return ERROR_MESSAGES[code]
+  }
+  return err instanceof Error && err.message ? err.message : fallback
+}
+
 export default function Register() {
   const [formData, setFormData] = useState({
     orgName: '',
@@ -93,8 +110,7 @@ export default function Register() {
       clearRegisterAttempts()
       navigate('/dashboard')
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao criar conta'
-      setError(msg)
+      setError(friendlyError(err, 'Erro ao criar conta'))
     } finally {
       setLoading(false)
     }
@@ -125,9 +141,10 @@ export default function Register() {
   return (
     <div className="max-w-md mx-auto px-4 py-20">
       <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">Cadastrar ONG</h1>
-      <p className="text-sm text-gray-500 text-center mb-6">
-        Seu cadastro passa por curadoria antes de liberar o painel.
-      </p>
+        <p className="text-sm text-gray-500 text-center mb-6">
+          Seu cadastro passa por curadoria antes de liberar o painel. Enviamos um e-mail de
+          confirmação — confirme o endereço para continuar.
+        </p>
       {error && (
         <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>
       )}

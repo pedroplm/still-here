@@ -1,6 +1,7 @@
 import type { Animal } from '@/types'
 
-export interface DemoAnimal extends Omit<Animal, 'organizationId' | 'available' | 'status'> {
+export interface DemoAnimal
+  extends Omit<Animal, 'organizationId' | 'ownerUid' | 'available' | 'status'> {
   orgName: string
 }
 

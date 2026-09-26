@@ -112,7 +112,7 @@ export default function AnimalForm() {
       if (isEditing && id) {
         await updateAnimal(id, animalData)
       } else {
-        await createAnimal(animalData)
+        await createAnimal(animalData, user.uid)
       }
       navigate('/dashboard/animais')
     } catch (err: unknown) {

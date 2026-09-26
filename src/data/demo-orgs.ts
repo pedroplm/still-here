@@ -13,6 +13,7 @@ export const demoOrganizations: Organization[] = [
       'Departamento de Proteção e Bem-Estar Animal da Prefeitura Municipal de Campinas. Órgão público responsável pela guarda, cuidados veterinários e adoção responsável de cães e gatos resgatados na cidade.\n\nPara adotar, acesse o Portal Animal, escolha o animal desejado, clique em "Quero Adotar" e aguarde o contato da equipe do DPBEA.',
     city: 'Campinas',
     state: 'SP',
+    cnpj: '',
     phone: '',
     email: 'bemestar.animal@campinas.sp.gov.br',
     website: 'https://portalanimal.campinas.sp.gov.br/adocao',

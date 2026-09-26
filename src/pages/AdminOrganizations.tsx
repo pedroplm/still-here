@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { isAdminUid } from '@/services/admin'
-import { getOrganizationsByStatus, setOrganizationStatus } from '@/services/database.service'
+import { getOrganizationsByStatus, setOrganizationStatus, hideOrganizationAnimals } from '@/services/database.service'
+import { maskCnpj } from '@/services/cnpj'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import type { Organization, OrgStatus } from '@/types'
 
@@ -71,6 +72,7 @@ export default function AdminOrganizations() {
     setError('')
     try {
       await setOrganizationStatus(org.id, 'rejected', reason.trim())
+      await hideOrganizationAnimals(org.id)
       setOrgs((prev) => prev.filter((o) => o.id !== org.id))
       setRejectingId(undefined)
       setReason('')
@@ -164,7 +166,7 @@ export default function AdminOrganizations() {
                   <dl className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
                     <div className="flex gap-2">
                       <dt className="text-gray-400 w-20 shrink-0">CNPJ</dt>
-                      <dd className="text-gray-700">{org.cnpj || '—'}</dd>
+                      <dd className="text-gray-700">{org.cnpj ? maskCnpj(org.cnpj) : '—'}</dd>
                     </div>
                     <div className="flex gap-2">
                       <dt className="text-gray-400 w-20 shrink-0">Cidade</dt>

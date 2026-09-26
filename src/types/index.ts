@@ -10,7 +10,7 @@ export interface Organization {
   description: string
   city: string
   state: string
-  cnpj?: string
+  cnpj: string
   phone: string
   email: string
   website?: string
@@ -31,6 +31,7 @@ export type AnimalSex = 'macho' | 'femea' | 'indefinido'
 export interface Animal {
   id?: string
   organizationId: string
+  ownerUid: string
   name: string
   species: 'cachorro' | 'gato' | 'ave' | 'roedor' | 'outro'
   breed?: string

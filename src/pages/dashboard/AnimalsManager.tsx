@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrgId } from '@/hooks/useOrgId'
-import { getAnimals, deleteAnimal, updateAnimal } from '@/services/database.service'
+import { getOrgAnimals, deleteAnimal, updateAnimal } from '@/services/database.service'
 import type { Animal, AnimalStatus } from '@/types'
 
 const STATUS_LABEL: Record<AnimalStatus, { label: string; className: string }> = {
@@ -19,7 +19,7 @@ export default function AnimalsManager() {
 
   useEffect(() => {
     if (!user || !orgId) return
-    getAnimals(orgId).then((data) => {
+    getOrgAnimals(orgId, user.uid).then((data) => {
       setAnimals(data)
       setLoading(false)
     })

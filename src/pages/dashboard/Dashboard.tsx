@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { getAnimals } from '@/services/database.service'
+import { getOrgAnimals } from '@/services/database.service'
 import type { Animal } from '@/types'
 import { useOrgId } from '@/hooks/useOrgId'
 
@@ -12,7 +12,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user || !orgId) return
-    getAnimals(orgId).then((animals: Animal[]) => {
+    getOrgAnimals(orgId, user.uid).then((animals: Animal[]) => {
       setAnimalCount(animals.length)
       setAvailableCount(animals.filter((a) => a.available).length)
     })

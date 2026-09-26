@@ -8,13 +8,28 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isEmailVerified() {
+      return isAuth() && request.auth.token.email_verified == true;
+    }
+
     function isAdmin() {
-      return isAuth() && request.auth.uid == 'COLE_AQUI_O_UID_DO_ADMIN';
+      return isAuth() && request.auth.uid == 'kimc5Hp2OpT4TsFyX15O8DQ5kBl2';
+    }
+
+    // get() só é seguro em get/create/update/delete. Em `list` a query falha,
+    // porque o Firestore exige que a query repita a constraint da regra.
+    function orgData(orgId) {
+      return get(/databases/$(database)/documents/organizations/$(orgId)).data;
     }
 
     function isOrgOwner(orgId) {
       return isAuth()
-        && get(/databases/$(database)/documents/organizations/$(orgId)).data.userId == request.auth.uid;
+        && orgData(orgId).userId == request.auth.uid;
+    }
+
+    function isApprovedOrg(orgId) {
+      return isAuth()
+        && orgData(orgId).status == 'approved';
     }
 
     function isAnimalOrgOwner() {
@@ -22,33 +37,97 @@ service cloud.firestore {
         && isOrgOwner(resource.data.organizationId);
     }
 
+    // Publicar exige ONG aprovada: sem isso, ONG rejeitada injeta animal na home.
     function isCreateAnimalOrgOwner() {
       return isAuth()
-        && isOrgOwner(request.resource.data.organizationId);
+        && isOrgOwner(request.resource.data.organizationId)
+        && isApprovedOrg(request.resource.data.organizationId);
+    }
+
+    // Campos que a ONG mexe no próprio perfil. `status` fica de fora de propósito:
+    // se entrasse, qualquer ONG se aprovaria sozinha. `cnpj` também fica: é a
+    // chave da trava de unicidade e precisa ser imutável depois do cadastro,
+    // senão o dono troca o CNPJ e a trava passa a apontar para a org errada.
+    function orgProfileFields() {
+      return [
+        'name', 'description', 'city', 'state', 'phone', 'email',
+        'website', 'instagram', 'logoUrl', 'pixKey', 'pixQrCodeUrl', 'updatedAt'
+      ];
     }
 
     // --- Organizations ---
 
     match /organizations/{orgId} {
-      allow read: if true;
+      allow list: if isAdmin()
+        || resource.data.status == 'approved'
+        || (isAuth() && resource.data.userId == request.auth.uid);
+
+      allow get: if isAdmin()
+        || resource.data.status == 'approved'
+        || isOrgOwner(orgId);
+
       allow create: if isAuth()
         && request.resource.data.userId == request.auth.uid
+        && request.resource.data.organizationId == orgId
         && request.resource.data.status == 'pending'
-        && request.resource.data.keys().hasAll(['userId', 'name', 'city', 'state']);
-      allow update: if (isOrgOwner(orgId) || isAdmin())
-        && request.resource.data.userId == resource.data.userId;
-      allow delete: if isOrgOwner(orgId);
+        && request.resource.data.keys().hasAll(['userId', 'name', 'cnpj', 'city', 'state']);
+
+      allow update: if request.resource.data.userId == resource.data.userId
+        && request.resource.data.cnpj == resource.data.cnpj
+        && request.resource.data.organizationId == resource.data.organizationId
+        && (isAdmin()
+          || (isOrgOwner(orgId)
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(orgProfileFields())));
+
+      // Só o admin apaga ONG: a trava de CNPJ é create-only, então apagar a
+      // ONG pelo dono deixaria o CNPJ reservado para sempre.
+      allow delete: if isAdmin();
     }
 
     // --- Animals ---
+    // `ownerUid` é denormalizado: é o que permite listar os próprios animais
+    // com uma query que a regra consegue provar.
 
     match /animals/{animalId} {
-      allow read: if resource.data.available == true
-        || (isAuth() && isOrgOwner(resource.data.organizationId));
-      allow create: if isCreateAnimalOrgOwner()
-        && request.resource.data.keys().hasAll(['organizationId', 'name', 'species', 'available']);
-      allow update: if isAnimalOrgOwner();
-      allow delete: if isAnimalOrgOwner();
+      allow list: if isAdmin()
+        || resource.data.available == true
+        || (isAuth() && resource.data.ownerUid == request.auth.uid);
+
+      allow get: if isAdmin()
+        || resource.data.available == true
+        || isOrgOwner(resource.data.organizationId);
+
+      allow create: if isEmailVerified()
+        && isCreateAnimalOrgOwner()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasAll([
+             'organizationId', 'ownerUid', 'name', 'species', 'available']);
+
+      // Publicar e editar animal exige ONG aprovada e e-mail verificado. Sem
+      // `isApprovedOrg` aqui, uma ONG rejeitada continuaria republicando
+      // animais na home enquanto o dono mantivesse a sessão.
+      allow update: if (isAdmin()
+          || (isEmailVerified()
+            && isAnimalOrgOwner()
+            && isApprovedOrg(resource.data.organizationId)))
+        && request.resource.data.organizationId == resource.data.organizationId
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+
+      allow delete: if isAdmin() || isAnimalOrgOwner();
+    }
+
+    // --- CNPJ ---
+    // Trava de unicidade: um CNPJ = uma ONG. Escrita só, e só no mesmo batch
+    // do cadastro. Sem read, ninguém consegue enumerar CNPJ de terceiro.
+
+    match /cnpj/{cnpjId} {
+      allow read: if false;
+      allow create: if isAuth()
+        && request.resource.data.keys().hasOnly(['organizationId', 'createdAt'])
+        && request.resource.data.organizationId is string;
+      allow update: if false;
+      allow delete: if false;
     }
 
     // --- Contador de acessos (home) ---
@@ -62,6 +141,12 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['count'])
         && request.resource.data.count is int
         && request.resource.data.count == resource.data.count + 1;
+    }
+
+    // --- Negado por padrão ---
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

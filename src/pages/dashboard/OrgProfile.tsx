@@ -67,7 +67,19 @@ export default function OrgProfile() {
         if (validated) throw new Error(validated)
         pixQrCodeUrl = await uploadImage(pixQrFile, setUploadProgress)
       }
-      await updateOrganization(org.id, { ...org, logoUrl, pixQrCodeUrl })
+      await updateOrganization(org.id, {
+        name: org.name,
+        description: org.description,
+        city: org.city,
+        state: org.state,
+        phone: org.phone,
+        email: org.email,
+        website: org.website,
+        instagram: org.instagram,
+        logoUrl,
+        pixKey: org.pixKey,
+        pixQrCodeUrl,
+      })
       setSuccess('Perfil salvo com sucesso!')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao salvar'
