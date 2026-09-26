@@ -1,11 +1,15 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'path'
+
+const cnamePath = path.resolve(import.meta.dirname, 'public/CNAME')
+const customDomain = existsSync(cnamePath) ? readFileSync(cnamePath, 'utf-8').trim() : ''
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/still-here/',
+  base: customDomain ? '/' : '/still-here/',
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
