@@ -31,7 +31,10 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-8 pt-4 border-t text-center text-xs text-gray-400">
-          &copy; {new Date().getFullYear()} Still Here. {t('footer.rights')}
+          <p>
+            &copy; {new Date().getFullYear()} Still Here. {t('footer.rights')}
+          </p>
+          <p className="mt-1">{t('alpha.badge')}</p>
         </div>
       </div>
     </footer>

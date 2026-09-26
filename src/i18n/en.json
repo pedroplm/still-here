@@ -2,6 +2,9 @@
   "app.name": "Still Here",
   "app.tagline": "Responsible adoption starts here",
 
+  "alpha.badge": "Open alpha",
+  "alpha.notice": "The platform is still being built: NGOs are curated before they show up, and parts of the site may change or break. If you spot a bug, let us know.",
+
   "common.save": "Save",
   "common.saving": "Saving...",
   "common.cancel": "Cancel",

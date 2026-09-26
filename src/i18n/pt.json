@@ -2,6 +2,9 @@
   "app.name": "Still Here",
   "app.tagline": "Adoção responsável começa aqui",
 
+  "alpha.badge": "Versão alpha aberta",
+  "alpha.notice": "A plataforma ainda está em construção: as ONGs passam por curadoria antes de aparecer e partes do site podem mudar ou falhar. Se encontrar algum erro, avisa.",
+
   "common.save": "Salvar",
   "common.saving": "Salvando...",
   "common.cancel": "Cancelar",
