@@ -12,9 +12,10 @@ import {
   orderBy,
   Timestamp,
   increment,
+  deleteField,
 } from 'firebase/firestore'
 import { db } from './firebase.config'
-import type { Organization, Animal } from '@/types'
+import type { Organization, Animal, OrgStatus } from '@/types'
 import { demoOrganizations, DEMO_CAMPINAS_ORG_ID } from '@/data'
 
 const ACCESS_STATS_DOC = doc(db, 'stats', 'accesses')
@@ -28,11 +29,17 @@ export async function getAccessCount(): Promise<number> {
   const snap = await getDoc(ACCESS_STATS_DOC)
   return snap.exists() ? (snap.data().count ?? 0) : 0
 }
-
 // --- Organizations ---
+
+export function isPublicOrg(org: Organization | null | undefined): boolean {
+  return Boolean(org) && org!.status !== 'pending' && org!.status !== 'rejected'
+}
+
 export async function getOrganizations() {
   const snap = await getDocs(collection(db, 'organizations'))
-  const firestoreOrgs = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Organization[]
+  const firestoreOrgs = snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Organization)
+    .filter(isPublicOrg)
   const hasCampinas = firestoreOrgs.some((o) => o.organizationId === DEMO_CAMPINAS_ORG_ID)
   return hasCampinas ? firestoreOrgs : [...firestoreOrgs, ...demoOrganizations]
 }
@@ -53,11 +60,20 @@ export async function getOrganizationByUserId(userId: string) {
   return { id: d.id, ...d.data() } as Organization
 }
 
+export async function getOrganizationsByStatus(status: OrgStatus) {
+  const q = query(collection(db, 'organizations'), where('status', '==', status))
+  const snap = await getDocs(q)
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Organization)
+    .sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0))
+}
+
 export async function createOrganization(data: Omit<Organization, 'id' | 'organizationId'>) {
   const ref = doc(collection(db, 'organizations'))
   await setDoc(ref, {
     ...data,
     organizationId: ref.id,
+    status: 'pending' as OrgStatus,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   })
@@ -66,6 +82,20 @@ export async function createOrganization(data: Omit<Organization, 'id' | 'organi
 
 export async function updateOrganization(id: string, data: Partial<Organization>) {
   return updateDoc(doc(db, 'organizations', id), { ...data, updatedAt: Timestamp.now() })
+}
+
+export async function setOrganizationStatus(
+  id: string,
+  status: OrgStatus,
+  rejectionReason?: string,
+) {
+  const payload: Record<string, unknown> = {
+    status,
+    reviewedAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  }
+  payload.rejectionReason = status === 'rejected' ? (rejectionReason ?? '') : deleteField()
+  return updateDoc(doc(db, 'organizations', id), payload)
 }
 
 // --- Animals ---

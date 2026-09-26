@@ -20,6 +20,7 @@ const AnimalsManager = lazy(() => import('./pages/dashboard/AnimalsManager'))
 const AnimalForm = lazy(() => import('./pages/dashboard/AnimalForm'))
 const OrgProfile = lazy(() => import('./pages/dashboard/OrgProfile'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const AdminOrganizations = lazy(() => import('./pages/AdminOrganizations'))
 
 function PageLoader() {
   return (
@@ -59,6 +60,14 @@ function App() {
             <Route path="animais/editar/:id" element={<AnimalForm />} />
             <Route path="perfil" element={<OrgProfile />} />
           </Route>
+          <Route
+            path="/admin/ongs"
+            element={
+              <ProtectedRoute>
+                <AdminOrganizations />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { logout } from '@/services/auth.service'
+import { isAdminUid } from '@/services/admin'
 import logoUrl from '@/assets/logo.svg'
 
 const NAV_LINKS = [
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const isActive = (to: string) => pathname === to || pathname.startsWith(to + '/')
+  const isAdmin = isAdminUid(user?.uid)
 
   async function handleLogout() {
     await logout()
@@ -55,6 +57,18 @@ export default function Navbar() {
                 >
                   Dashboard
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin/ongs"
+                    className={`text-sm px-4 py-2 rounded-lg ${
+                      isActive('/admin')
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'text-amber-600 hover:bg-amber-50'
+                    }`}
+                  >
+                    Admin
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="text-sm text-gray-500 hover:text-red-600"

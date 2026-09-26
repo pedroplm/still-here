@@ -1,5 +1,7 @@
 import { Timestamp } from 'firebase/firestore'
 
+export type OrgStatus = 'pending' | 'approved' | 'rejected'
+
 export interface Organization {
   id?: string
   userId: string
@@ -16,6 +18,9 @@ export interface Organization {
   logoUrl?: string
   pixKey?: string
   pixQrCodeUrl?: string
+  status?: OrgStatus
+  rejectionReason?: string
+  reviewedAt?: Timestamp
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }

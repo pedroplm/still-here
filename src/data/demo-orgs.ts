@@ -7,6 +7,7 @@ export const demoOrganizations: Organization[] = [
     id: DEMO_CAMPINAS_ORG_ID,
     organizationId: DEMO_CAMPINAS_ORG_ID,
     userId: 'demo-user',
+    status: 'approved',
     name: 'Departamento de Proteção e Bem-Estar Animal (DPBEA)',
     description:
       'Departamento de Proteção e Bem-Estar Animal da Prefeitura Municipal de Campinas. Órgão público responsável pela guarda, cuidados veterinários e adoção responsável de cães e gatos resgatados na cidade.\n\nPara adotar, acesse o Portal Animal, escolha o animal desejado, clique em "Quero Adotar" e aguarde o contato da equipe do DPBEA.',
