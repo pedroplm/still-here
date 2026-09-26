@@ -60,6 +60,14 @@ Feito:
 - [x] Teste do batch atômico do cadastro (org + trava CNPJ) — 409 em CNPJ duplicado, sem doc órfão
 - [x] Secret `VITE_ADMIN_UID` no GitHub e DNS do domínio no ar com HTTPS
 
+Corrigido 2026-09-26:
+
+- [ ] **`VITE_ADMIN_UID` não chega no bundle** — painel `/admin/ongs` está no ar mas
+  mostra "Acesso restrito" para todos, `isAdminUid()` sempre `false`. Provável causa:
+  valor cadastrado na aba Variables e não Secrets; o workflow lê `secrets.VITE_ADMIN_UID`.
+  Ver `HANDOFF.md` 4.2, que tem o comando de verificação. **Não confiar no log do CI**,
+  tem que achar o UID dentro do bundle servido.
+
 Adiado:
 
 - [ ] App Check — desativado por decisão. O console do Firebase não oferece mais reCAPTCHA v3 classic, só Enterprise (Fraud Defense), que exige `ReCaptchaEnterpriseProvider` no código e chave no formato `projects/../locations/global/keys/..`. Detalhes em `HANDOFF.md` 3.6

@@ -259,10 +259,40 @@ e `firebase-firestore-uGVkh3O3.js` bate com o build local). `firebase.config` e
 `index` têm hash diferente do local porque o CI embute os valores dos secrets —
 esperado.
 
-### 4.2 Secret `VITE_ADMIN_UID` no GitHub — FEITO
+### 4.2 Secret `VITE_ADMIN_UID` no GitHub — NAO FUNCIONA (verificado 2026-09-26)
 
-O Pedri cadastrou `VITE_ADMIN_UID = kimc5Hp2OpT4TsFyX15O8DQ5kBl2` em
-Settings → Secrets and variables → Actions. Build do `ed6c030` passou com ele.
+Dava pra ler "cadastrado, build passou com ele" e confiar. **Não funciona.** Verificado
+contra o bundle servido em `https://stillhere.com.br`:
+
+- `VITE_FIREBASE_API_KEY` **está** embutido no bundle (`AIza...` presente) — ou seja,
+  o mecanismo de secret funciona e o CI embute env var sem problema.
+- `kimc5Hp2OpT4TsFyX15O8DQ5kBl2` **não aparece** em nenhum dos 6 chunks (889 kB
+  analisados no deploy `1b65627`).
+
+Efeito: `isAdminUid()` (`src/services/admin.ts`) compila com `ADMIN_UID` vazio e
+retorna `false` sempre. `/admin/ongs` mostra "Acesso restrito" para todo mundo,
+inclusive para o admin real. O painel de curadoria está **no ar e inacessível**.
+
+Causa provável: o valor foi cadastrado na aba **Variables** em vez de **Secrets**.
+O workflow usa `secrets.VITE_ADMIN_UID` (linha 37 do `deploy.yml`), que **não**
+lê a aba Variables — resulta em string vazia sem erro nenhum no log.
+
+Para checar de novo depois de mexer, não confiar no log do CI. Baixar o bundle e
+procurar o UID:
+
+```powershell
+$h = (Invoke-WebRequest https://stillhere.com.br/).Content
+$e = [regex]::Match($h, 'src="(/assets/index-[^"]+\.js)"').Groups[1].Value
+$all = (Invoke-WebRequest "https://stillhere.com.br$e").Content
+$all -match 'kimc5Hp2OpT4TsFyX15O8DQ5kBl2'   # tem que ser True
+```
+
+Só depois de `True` o admin está realmente no ar. A aba de Secrets é
+Settings → Secrets and variables → Actions → **Secrets** → New repository secret.
+
+Nota: `VITE_ADMIN_UID` no bundle é informação pública (o client é público por
+natureza). Autorização de verdade continua nas `firestore.rules`, que testaram o
+admin como usuário real. Expor o UID não abre brecha; só enfeia o gate de UI.
 
 ### 4.3 App Check — adiado, sem pendência
 
