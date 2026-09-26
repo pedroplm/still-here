@@ -5,7 +5,7 @@
 - [x] Criar `src/data/` — dados estáticos no repo: conteúdo educativo, cartilha, categorias, demo-animals *( educational-content.ts, categories.ts, demo-animals.ts, index.ts )*
 - [x] Menu mobile — hamburger menu na navbar (atualmente esconde links com `hidden md:flex` sem toggle)
 - [x] URLs SEO-friendly — implementar `/adocao/cachorro-rex-abc123` em vez de `/animais/{firestoreId}`
-- [ ] Criar `sitemap.xml` e `robots.txt` em `public/` *(delayed — URL base de deploy ainda não definida)*
+- [x] Criar `sitemap.xml` e `robots.txt` em `public/`
 
 ## Importantes
 
